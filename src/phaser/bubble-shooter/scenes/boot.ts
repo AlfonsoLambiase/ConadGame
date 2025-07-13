@@ -1,10 +1,8 @@
-/* eslint-disable no-console */
 import * as Phaser from "phaser";
 
-import {loadAudios, loadFonts, loadImages, loadSpritesheets} from "../shared/utils/load-assets";
-import {BubbleShooterAssetConf} from "../shared/config/asset-conf.const";
+import { loadAudios, loadFonts, loadImages, loadSpritesheets } from "../shared/utils/load-assets";
+import { BubbleShooterAssetConf } from "../shared/config/asset-conf.const";
 
-// TODO: We can enhance the readability exporting the load progress status.
 export class Boot extends Phaser.Scene {
   #loadBar!: Phaser.GameObjects.Graphics;
   #progressBar!: Phaser.GameObjects.Graphics;
@@ -19,7 +17,7 @@ export class Boot extends Phaser.Scene {
   isInit: boolean = false;
 
   constructor() {
-    super({key: BubbleShooterAssetConf.scene.boot});
+    super({ key: BubbleShooterAssetConf.scene.boot });
   }
 
   init(data: {
@@ -30,7 +28,7 @@ export class Boot extends Phaser.Scene {
     logoPhaser: string;
   }) {
     if (!this.isInit) {
-      //! Se serve prendere qualche dato dal file game.tsx
+      // Se serve prendere qualche dato dal file game.tsx
       // this.bg1 = data.bg1;
       // this.bg2 = data.bg2;
       // this.typeImage = data.typeImage;
@@ -48,7 +46,7 @@ export class Boot extends Phaser.Scene {
     // Set up progress bar update
     this.load.on(
       "progress",
-      (value: any) => {
+      (value: number) => {
         this.#progressBar.clear();
         this.#progressBar.fillStyle(0xbf5505, 1);
         this.#progressBar.fillRoundedRect(
@@ -73,16 +71,18 @@ export class Boot extends Phaser.Scene {
     this.registry.set(BubbleShooterAssetConf.registry.score, 0);
     this.registry.set(BubbleShooterAssetConf.registry.coins, 0);
 
-    //! Da qui si assegnano le immagini da next dentro il gioco creato in phaser
+    // Carica immagini da next dentro il gioco creato in phaser
     // this.load.image("bg1", this.bg1);
     // this.load.image("bg2", this.bg2);
-    this.load.image("logoPhaser", this.logoPhaser); //! Solo per test
+    if (this.logoPhaser) {
+      this.load.image("logoPhaser", this.logoPhaser); //! Solo per test
+    }
 
     console.log("Load Images boot.ts");
   }
 
   startGame() {
-    //this.scene.start(BubbleShooterAssetConf.scene.game, {typeImage: this.typeImage});
+    // this.scene.start(BubbleShooterAssetConf.scene.game, { typeImage: this.typeImage });
     console.log("Start Tutorial");
     this.scene.start(BubbleShooterAssetConf.scene.tutorial);
   }
