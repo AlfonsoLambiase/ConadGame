@@ -1,0 +1,9 @@
+{
+  "appId": "com.alfonso.conadgame",
+  "appName": "Conad Game",
+  "webDir": "www",
+  "server": {
+    "url": "https://conad-game.vercel.app",
+    "cleartext": false
+  }
+}

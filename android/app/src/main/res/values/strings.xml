@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Conad Game</string>
+    <string name="title_activity_main">Conad Game</string>
+    <string name="package_name">com.alfonso.conadgame</string>
+    <string name="custom_url_scheme">com.alfonso.conadgame</string>
+</resources>
