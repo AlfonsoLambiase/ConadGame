@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import {BottleSortPuzzleAssetConf} from "../shared/config/asset-conf.const";
 
 export class Tutorial extends Phaser.Scene {
@@ -381,7 +381,7 @@ export class Tutorial extends Phaser.Scene {
     const scaleX = this.width / refW;
     const scaleY = this.height / refH;
 
-    let calculatedScale = Math.min(scaleX, scaleY);
+    const calculatedScale = Math.min(scaleX, scaleY);
 
     // Impostiamo limiti massimi e minimi
     const minScale = 0.59;

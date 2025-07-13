@@ -1,6 +1,5 @@
 import {BottleSortPuzzleAssetConf} from "../shared/config/asset-conf.const";
-import {PhaserEvents} from "@/lib/phaser-events";
-import {EventBus} from "@/phaser/EventBus";
+
 
 export class Outro extends Phaser.Scene {
   imageKey: string = "endFailed";

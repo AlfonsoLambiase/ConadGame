@@ -1,7 +1,6 @@
 import {BottleSortPuzzleAssetConf} from "../shared/config/asset-conf.const";
 import {Game} from "./game";
-import {EventBus} from "@/phaser/EventBus";
-import {PhaserEvents} from "@/lib/phaser-events";
+
 
 export class ExitManager extends Phaser.Scene {
   private width!: number;

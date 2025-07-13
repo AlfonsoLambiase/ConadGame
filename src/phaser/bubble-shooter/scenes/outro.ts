@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import {BubbleShooterAssetConf} from "../shared/config/asset-conf.const";
 
 export class Outro extends Phaser.Scene {
