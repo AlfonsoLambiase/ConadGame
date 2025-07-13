@@ -1,0 +1,6 @@
+export enum PhaserEvents {
+  START_GAME = "START_GAME",
+  END_GAME = "END_GAME",
+  EXIT_GAME = "EXIT_GAME",
+  CHANGE_BACKGROUND = "CHANGE_BACKGROUND",
+}
