@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
-
 import Phaser from "phaser";
 
 import {UIManager} from "../components/UIManager";
@@ -18,8 +15,8 @@ export class Game extends Phaser.Scene {
   timerManager!: TimerManager;
   uiManager!: UIManager;
 
-  exitButton: any;
-  theme!: Phaser.Sound.BaseSound;
+  exitButton!: Phaser.GameObjects.GameObject;
+  theme?: Phaser.Sound.BaseSound;
 
   valueScale!: number;
 
@@ -27,7 +24,7 @@ export class Game extends Phaser.Scene {
 
   private typeImage!: number;
 
-  private isGameOver: boolean = false; // controllo aggiuntivo per eveitare che possa andare 2 volte in gameOver
+  private isGameOver: boolean = false; // controllo aggiuntivo per evitare che possa andare 2 volte in gameOver
 
   starsEffectManager!: StarsEffectManager;
 
@@ -35,10 +32,8 @@ export class Game extends Phaser.Scene {
     super({key: BottleSortPuzzleAssetConf.scene.game});
   }
 
-  init(data: {typeImage: number}) {
-    //! Se serve prendere qualche dato dal file game.tsx
-    // Comunque bisogna fare il collegamento anche da boot
-    this.typeImage = data.typeImage;
+  init(data: {typeImage: number} = {typeImage: 0}) {
+    this.typeImage = data.typeImage ?? 0;
     console.log("GameScene Bottle sort puzzle: ", this.typeImage);
   }
 
@@ -55,9 +50,9 @@ export class Game extends Phaser.Scene {
     this.uiManager.setGameScene(this);
     this.uiManager.createUI();
 
-    this.audioManager = new AudioManager(this); //* è una semplice classe helper. Si inizializza in questo modo.
+    this.audioManager = new AudioManager(this);
     this.audioManager.loadAudios();
-    //this.audioManager.playBackgroundMusic(); // ! Attivare musica
+    // this.audioManager.playBackgroundMusic();
 
     const exitManager = this.scene.get(BottleSortPuzzleAssetConf.scene.exitManager) as ExitManager;
 
@@ -65,7 +60,7 @@ export class Game extends Phaser.Scene {
     this.exitButton = exitManager.createExitButton(this, this.theme);
     this.scene.bringToTop(BottleSortPuzzleAssetConf.scene.exitManager);
 
-    this.scene.launch(BottleSortPuzzleAssetConf.scene.timerManager); //* è una estensione della classe Phaser.Scene. Si inizializza in questo modo.
+    this.scene.launch(BottleSortPuzzleAssetConf.scene.timerManager);
     this.timerManager = this.scene.get(
       BottleSortPuzzleAssetConf.scene.timerManager,
     ) as TimerManager;
@@ -76,7 +71,6 @@ export class Game extends Phaser.Scene {
   }
 
   private initializeBottleSortPuzzleManager() {
-    // Aggiungi la scena BottleSortPuzzleManager al scene manager se non è già presente
     if (!this.scene.manager.getScene(BottleSortPuzzleAssetConf.scene.bottleSortManager)) {
       this.scene.manager.add(
         BottleSortPuzzleAssetConf.scene.bottleSortManager,
@@ -85,22 +79,17 @@ export class Game extends Phaser.Scene {
       );
     }
 
-    // Avvia la scena BottleSortPuzzleManager
     this.scene.launch(BottleSortPuzzleAssetConf.scene.bottleSortManager, {
       gameScene: this,
     });
 
-    // Ottieni riferimento al manager
     this.bottleSortPuzzleManager = this.scene.get(
       BottleSortPuzzleAssetConf.scene.bottleSortManager,
     ) as BottleSortPuzzleManager;
   }
 
-  // //! Solo per test
   addLogoPhaser() {
-    // logoPhaser
-    const logoPhaser = this.add.image(this.scale.width - 50, this.scale.height - 50, "logoPhaser"); // metodo per riprendere le variabili dalla page.tsx del game.
-
+    const logoPhaser = this.add.image(this.scale.width - 50, this.scale.height - 50, "logoPhaser");
     logoPhaser.setOrigin(0.5).setDepth(-1).setScale(this.setDynamicValueBasedOnScale(0.7, 1.0));
   }
 
@@ -108,10 +97,7 @@ export class Game extends Phaser.Scene {
     return this.globalScale;
   }
 
-  // Metodo per ridimensionare gli oggetti in scena dipendendo dal tipo di dispositivo e della sua dimensione schermo.
-  //! Metodo nuovo piu robusto copiare questo in tutti gli altri
   setGlobalScale() {
-    // Otteniamo dimensioni reali del display
     const cssWidth = window.innerWidth;
     const cssHeight = window.innerHeight;
     const pixelRatio = window.devicePixelRatio || 1;
@@ -119,34 +105,27 @@ export class Game extends Phaser.Scene {
     const realWidth = cssWidth * pixelRatio;
     const realHeight = cssHeight * pixelRatio;
 
-    // Recuperiamo le dimensioni configurate nel gioco (non influenzate da scale di Phaser)
     const config = this.sys.game.config as {width: number; height: number};
 
-    // Definizione della risoluzione di riferimento
-    //! NB: Attualmente settato a verticale (1080x1920) per mobile
     const refW = 1080;
     const refH = 1920;
 
-    const scaleX = config.width / refW;
-    const scaleY = config.height / refH;
+    const scaleX = config.width as number / refW;
+    const scaleY = config.height as number / refH;
 
-    let calculatedScale = Math.min(scaleX, scaleY);
+    const calculatedScale = Math.min(scaleX, scaleY);
 
-    // Impostiamo limiti massimi e minimi
     const minScale = 0.59;
     const maxScale = 1.2;
 
-    // Clamp dello scale in range [minScale, maxScale]
     let globalScale = Math.min(maxScale, Math.max(minScale, calculatedScale));
 
-    // Penalità extra se dimensioni CSS sono piccole (es. dispositivi vecchi o SE)
     const isBigScreen = realWidth >= 2500 || realHeight >= 1400;
 
     if (!isBigScreen && cssWidth < 750 && cssHeight < 450) {
       globalScale *= 0.7;
     }
 
-    // Arrotondiamo a 2 decimali
     this.globalScale = Math.round(globalScale * 100) / 100;
 
     console.log("Scala applicata tutorial:", this.globalScale);
@@ -166,7 +145,6 @@ export class Game extends Phaser.Scene {
   startAnimConfetti() {
     const config = this.sys.game.config as {width: number; height: number};
 
-    // Create spriteLeft
     const spriteLeft = this.add
       .sprite(0, config.height / 2, BottleSortPuzzleAssetConf.spritesheet.confetti_left.key)
       .setOrigin(0, 0.5)
@@ -174,7 +152,6 @@ export class Game extends Phaser.Scene {
       .setScale(5)
       .setScrollFactor(0);
 
-    // Create animationLeft
     this.anims.create({
       key: "animConfettiLeft",
       frames: this.anims.generateFrameNumbers(
@@ -189,7 +166,6 @@ export class Game extends Phaser.Scene {
 
     spriteLeft.play("animConfettiLeft");
 
-    // Create spriteRight
     const spriteRight = this.add
       .sprite(
         config.width,
@@ -201,7 +177,6 @@ export class Game extends Phaser.Scene {
       .setScale(5)
       .setScrollFactor(0);
 
-    // Create animationRight
     this.anims.create({
       key: "animConfettiRight",
       frames: this.anims.generateFrameNumbers(
