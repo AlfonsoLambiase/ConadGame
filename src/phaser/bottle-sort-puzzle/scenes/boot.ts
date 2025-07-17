@@ -48,7 +48,7 @@ export class Boot extends Phaser.Scene {
     // Set up progress bar update
     this.load.on(
       "progress",
-      (value: number) => { // <-- specifico il tipo corretto: number
+      (value: any) => {
         this.#progressBar.clear();
         this.#progressBar.fillStyle(0xbf5505, 1);
         this.#progressBar.fillRoundedRect(

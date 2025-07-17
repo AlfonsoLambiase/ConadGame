@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
- 
+/* eslint-disable no-console */
 import Phaser from "phaser";
 
 import {BasketAssetConf} from "../shared/config/asset-conf.const";
@@ -367,26 +367,12 @@ export class BasketManager extends Phaser.Scene {
     this.basketWalls.children.entries.forEach((wall) => {
       const rect = wall as Phaser.GameObjects.Rectangle;
 
-   interface OriginalData {
-  baseX: number;
-  baseY: number;
-  baseWidth: number;
-  baseHeight: number;
-}
-
-interface RectWithOriginalData extends Phaser.GameObjects.Rectangle {
-  originalData: OriginalData;
-}
-
-const rectWithData = rect as RectWithOriginalData;
-
-rectWithData.originalData = {
-  baseX: rect.x,
-  baseY: rect.y,
-  baseWidth: rect.width,
-  baseHeight: rect.height,
-};
-
+      (rect as any).originalData = {
+        baseX: rect.x,
+        baseY: rect.y,
+        baseWidth: rect.width,
+        baseHeight: rect.height,
+      };
     });
 
     // metodo per rilevare l'entrata della palla nel basket e assegnare punteggio
@@ -653,17 +639,17 @@ rectWithData.originalData = {
 
     // Calcola posizione Y con tolleranze: centro ±1/5 verso il basso, ±2/5 verso l'alto
     const centerY = screenHeight * 0.5 + this.scale.height; // Posizione centrale attuale
-    const minY = centerY - (screenHeight * 1) / 5; // 1/5 verso l'alto
+    let minY = centerY - (screenHeight * 1) / 5; // 1/5 verso l'alto
     let maxY = centerY + (centerY * 1) / 6; // 1/6 verso il basso
 
-  
-   
+    // Se il movimento è verticale, dobbiamo lasciare spazio per l'oscillazione
+    let basketY: number;
 
     if (movementType === 1) {
       maxY = centerY;
     }
 
-const basketY = minY + Math.random() * (maxY - minY);
+    basketY = minY + Math.random() * (maxY - minY);
 
     // Calcola posizione X base
     let basketX: number;

@@ -36,6 +36,7 @@ export const BottleSortPuzzleAssetConf = {
 
     // for specific game
     bottleGlass: "bottleGlass",
+    bottleGlassSelected: "bottleGlassSelected",
     bottleLabel: "bottleLabel",
     bottleCap: "bottleCap",
     bookcase: "bookcase",

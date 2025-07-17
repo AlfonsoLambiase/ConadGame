@@ -1,4 +1,4 @@
- 
+/* eslint-disable no-console */
 import * as Phaser from "phaser";
 
 import {BasketAssetConf} from "../shared/config/asset-conf.const";

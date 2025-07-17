@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
+/* eslint-disable no-console */
 import Phaser from "phaser";
 
 import {AudioManager} from "../components/audioManager";
@@ -180,8 +179,7 @@ export class BubbleShooterManager extends Phaser.Scene {
       this.currentTopRowIndex++;
 
       const isEvenRow = this.currentTopRowIndex % 2 === 0;
-    const newRow: unknown[] = [];
-
+      const newRow: any[] = [];
 
       for (let col = 0; col < this.columns; col++) {
         const x = this.getColumnX(col, isEvenRow);
@@ -635,8 +633,7 @@ export class BubbleShooterManager extends Phaser.Scene {
     const maxBounces = 1;
     const maxDistance = 5000;
 
-    const points: Phaser.Math.Vector2[] = [];
-
+    let points: Phaser.Math.Vector2[] = [];
     let currentPoint = new Phaser.Math.Vector2(startX, startY);
     let currentAngle = this.arrow.rotation - Math.PI / 2;
     let hitBubble = false;
@@ -795,7 +792,31 @@ export class BubbleShooterManager extends Phaser.Scene {
     }
   }
 
- 
+  //! Cancellare
+  // // Metodo opzionale per modificare dinamicamente le proprietà della linea
+  // public setAimLineProperties(config: {
+  //   radius?: number;
+  //   spacing?: number;
+  //   alpha?: number;
+  //   color?: number;
+  //   hitPointRadius?: number;
+  //   hitPointColor?: number;
+  //   hitPointAlpha?: number;
+  // }) {
+  //   if (config.radius !== undefined) this.aimLineRadius = config.radius;
+  //   if (config.spacing !== undefined) this.aimLineSpacing = config.spacing;
+  //   if (config.alpha !== undefined) this.aimLineAlpha = config.alpha;
+  //   if (config.color !== undefined) this.aimLineColor = config.color;
+  //   if (config.hitPointRadius !== undefined) this.aimLineHitPointRadius = config.hitPointRadius;
+  //   if (config.hitPointColor !== undefined) this.aimLineHitPointColor = config.hitPointColor;
+  //   if (config.hitPointAlpha !== undefined) this.aimLineHitPointAlpha = config.hitPointAlpha;
+  // }
+
+  //* Scopo: Popola la griglia iniziale di bolle nella parte superiore:
+  // Le prime filledRows righe vengono riempite con bolle colorate.
+  // Le restanti righe restano vuote (color: "blank").
+  // Imposta le coordinate e l'allineamento a griglia (pari/dispari).
+  // Aggiorna la proprietà grid con la struttura dati della griglia.
   createBubbles() {
     for (let row = 0; row < this.rows; row++) {
       const rowArray = [];
@@ -816,7 +837,18 @@ export class BubbleShooterManager extends Phaser.Scene {
         } else {
           rowArray.push({centerX: x, centerY: y, color: "blank", bubble: null}); //! Originale
 
-          
+          //! Solo per visualizzare grafica - cancellare
+          // // Bolla "vuota" solo visiva, senza collider attivo
+          // const dummyColor = this.colors[0]; // Colore qualsiasi (es. "blue")
+          // const bubble = this.createBubble(x, y, dummyColor);
+
+          // bubble.setAlpha(0.15); // Semitrasparente
+          // bubble.body?.destroy(); // Rimuove completamente il collider
+          // // oppure bubble.body?.enable = false;
+
+          // this.bubblesGroup.add(bubble);
+          // rowArray.push({centerX: x, centerY: y, color: "blank", bubble});
+          //! fino qui
         }
       }
       this.grid.push(rowArray);
@@ -1048,7 +1080,6 @@ export class BubbleShooterManager extends Phaser.Scene {
 
     if (!movingBubble.body) return;
 
-    
     const dx = movingBubble.x - (stationaryObject as any).x;
     const dy = movingBubble.y - (stationaryObject as any).y;
     const distance = Math.sqrt(dx * dx + dy * dy);

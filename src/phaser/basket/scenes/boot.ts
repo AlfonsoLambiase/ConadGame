@@ -1,4 +1,4 @@
- 
+/* eslint-disable no-console */
 import * as Phaser from "phaser";
 
 import {loadAudios, loadFonts, loadImages, loadSpritesheets} from "../shared/utils/load-assets";
@@ -47,21 +47,20 @@ export class Boot extends Phaser.Scene {
 
     // Set up progress bar update
     this.load.on(
-  "progress",
-  (value: number) => {
-    this.#progressBar.clear();
-    this.#progressBar.fillStyle(0xbf5505, 1);
-    this.#progressBar.fillRoundedRect(
-      this.cameras.main.width / 4,
-      this.cameras.main.height - 96,
-      (this.cameras.main.width / 2) * value,
-      16,
-      8,
+      "progress",
+      (value: any) => {
+        this.#progressBar.clear();
+        this.#progressBar.fillStyle(0xbf5505, 1);
+        this.#progressBar.fillRoundedRect(
+          this.cameras.main.width / 4,
+          this.cameras.main.height - 96,
+          (this.cameras.main.width / 2) * value,
+          16,
+          8,
+        );
+      },
+      this,
     );
-  },
-  this,
-);
-
 
     // Set up loading complete callback
     this.load.on("complete", () => {
@@ -82,12 +81,10 @@ export class Boot extends Phaser.Scene {
     console.log("Load Images boot.ts");
   }
 
-create(){ console.log("boot")}
-
   startGame() {
     //this.scene.start(GameDemo02AssetConf.scene.game, {typeImage: this.typeImage});
     console.log("Start Tutorial");
-     this.scene.start(BasketAssetConf.scene.tutorial);
+    this.scene.start(BasketAssetConf.scene.tutorial);
   }
 
   #createBars() {

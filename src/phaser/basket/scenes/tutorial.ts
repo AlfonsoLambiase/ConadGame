@@ -1,4 +1,4 @@
- 
+/* eslint-disable no-console */
 import {BasketAssetConf} from "../shared/config/asset-conf.const";
 
 export class Tutorial extends Phaser.Scene {
@@ -26,7 +26,6 @@ export class Tutorial extends Phaser.Scene {
   }
 
   create() {
-     console.log("tutorial")
     this.setGlobalScale();
 
     this.addRoadAndBackgroundRoad();
@@ -382,7 +381,7 @@ export class Tutorial extends Phaser.Scene {
     const scaleX = this.width / refW;
     const scaleY = this.height / refH;
 
-    const calculatedScale = Math.min(scaleX, scaleY);
+    let calculatedScale = Math.min(scaleX, scaleY);
 
     // Impostiamo limiti massimi e minimi
     const minScale = 0.59;

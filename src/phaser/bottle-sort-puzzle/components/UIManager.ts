@@ -18,12 +18,15 @@ export class UIManager {
   ofssetY: number = 200;
   ofssetX: number = 0;
 
+  helpUsed: number = 0;
+  differenceTryLimit: number = 1; // limite massimo tasto aiuto
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
   }
 
   createUI(): void {
-    // backgroundGame: copre l'intera area di gioco.
+    //* backgroundGame: copre l'intera area di gioco.
     const backgroundGame = this.scene.add.image(
       this.scene.scale.width / 2,
       this.scene.scale.height / 2,
@@ -35,7 +38,7 @@ export class UIManager {
       .setScrollFactor(0)
       .setDisplaySize(this.scene.scale.width, this.scene.scale.height);
 
-    // backgroundLogo
+    //* backgroundLogo
     const bgLogo = this.scene.add.image(
       this.scene.scale.width / 2,
       0,
@@ -48,7 +51,7 @@ export class UIManager {
       .setDepth(-2)
       .setScale(this.gameScene.setDynamicValueBasedOnScale(0.4, 1.0));
 
-    // logo
+    //* logo
     const logo = this.scene.add.image(
       this.scene.scale.width / 2,
       0,
@@ -61,7 +64,7 @@ export class UIManager {
       .setDepth(-1)
       .setScale(this.gameScene.setDynamicValueBasedOnScale(0.4, 1.0));
 
-    // scoreText
+    //* scoreText
     this.scoreText = this.scene.add.text(
       this.gameScene.setDynamicValueBasedOnScale(140, 230) + this.ofssetX,
       this.gameScene.setDynamicValueBasedOnScale(-80, 115) + this.ofssetY,
@@ -78,10 +81,9 @@ export class UIManager {
       .setDepth(1)
       .setScale(this.gameScene.setDynamicValueBasedOnScale(0.7, 1.2));
 
-    // Nel create o init, salva la scala originale
     this.originalScale = this.scoreText.scale;
 
-    // iconScore
+    //* iconScore
     const iconScore = this.scene.add.image(
       this.gameScene.setDynamicValueBasedOnScale(50, 80) + this.ofssetX,
       this.gameScene.setDynamicValueBasedOnScale(-75, 110) + this.ofssetY,
@@ -95,9 +97,9 @@ export class UIManager {
       .setScale(this.gameScene.setDynamicValueBasedOnScale(0.5, 1.0));
 
     //! nuovo
-    // backgroundScore
+    //* backgroundScore
     const backgroundScore = this.scene.add.image(
-      this.gameScene.setDynamicValueBasedOnScale(30 + 95, 80 + 95) + this.ofssetX,
+      this.gameScene.setDynamicValueBasedOnScale(125, 175) + this.ofssetX,
       this.gameScene.setDynamicValueBasedOnScale(-75, 110) + this.ofssetY,
       BubbleShooterAssetConf.image.backgroundScore,
     );
@@ -107,6 +109,44 @@ export class UIManager {
       .setScrollFactor(0)
       .setDepth(0)
       .setScale(this.gameScene.setDynamicValueBasedOnScale(0.8, 1.4));
+
+    //* iconHelp
+    const iconHelp = this.scene.add.image(
+      this.gameScene.setDynamicValueBasedOnScale(
+        this.scene.scale.width - 20,
+        this.scene.scale.width - 50,
+      ) + this.ofssetX,
+      this.gameScene.setDynamicValueBasedOnScale(-75, 110) + this.ofssetY,
+      BubbleShooterAssetConf.image.iconHelp,
+    );
+
+    iconHelp.setOrigin(1, 0.5);
+    iconHelp.setDepth(0);
+    iconHelp.setScale(this.gameScene.setDynamicValueBasedOnScale(0.5, 1.0));
+    iconHelp.setInteractive();
+
+    this.helpUsed = 0; // Inizializza contatore usi aiuto (può essere globale nella scena)
+
+    iconHelp.on("pointerdown", () => {
+      if (this.helpUsed >= this.differenceTryLimit) return;
+
+      if (
+        !this.gameScene.bottleSortPuzzleManager.isAnimating &&
+        !this.gameScene.bottleSortPuzzleManager.isActiveBottle
+      ) {
+        console.log("iconHelp clicked");
+
+        this.helpUsed++;
+
+        if (this.helpUsed === this.differenceTryLimit) {
+          iconHelp.disableInteractive();
+          iconHelp.setAlpha(0.7); // rende il bottone trasparente
+          iconHelp.setTint(0x999999); // aggiunge un effetto "grigio spento"
+        }
+
+        this.gameScene.bottleSortPuzzleManager.setAddExtraBottle();
+      }
+    });
   }
 
   public setGameScene(scene: Game): void {
