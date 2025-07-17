@@ -2,8 +2,8 @@ import Link from "next/link";
 
 const giochi = [
   { title: "Bubble-Shooter", path: "/giochi/bubble-shooter" },
-  { title: "Basket", path: "/giochi/basket" },
-  { title: "Bottle-Puzzle", path: "/giochi/bottle" },
+  { title: "Basket", path: "/giochi/basket" }
+  // { title: "Bottle-Puzzle", path: "/giochi/bottle" },
 ];
 
 export default function Home() {
