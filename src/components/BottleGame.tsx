@@ -1,5 +1,4 @@
-/* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { useEffect, useRef, useState, CSSProperties } from "react";
 import * as Phaser from "phaser";
 

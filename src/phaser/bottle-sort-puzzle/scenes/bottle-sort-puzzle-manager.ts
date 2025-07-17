@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
+
 import Phaser from "phaser";
 
 import {AudioManager} from "../components/audioManager";
@@ -12,6 +12,16 @@ interface GameObject {
   sprite: Phaser.GameObjects.Image;
 }
 
+interface BottleWithSelectedImage {
+  selectedImage?: Phaser.GameObjects.Image;
+}
+
+
+interface ShelfWithFlag extends Phaser.GameObjects.GameObject {
+  isShelf?: boolean;
+}
+
+
 interface Bottle {
   container: Phaser.GameObjects.Container;
   background: Phaser.GameObjects.Image;
@@ -23,6 +33,8 @@ interface Bottle {
   label?: Phaser.GameObjects.Image;
   cap?: Phaser.GameObjects.Image;
 }
+
+
 
 export class BottleSortPuzzleManager extends Phaser.Scene {
   audioManager!: AudioManager;
@@ -107,7 +119,7 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
     const scaleY = this.gameHeight / baseHeight;
 
     // Tolleranza modificabile 5% piu piccolo del valore ottenuto
-    let scaleTolerance = 0.05;
+  const scaleTolerance = 0.05;
 
     // Usa la scala minore per mantenere le proporzioni (stesso valore per X e Y)
     let calculatedScale = Math.min(scaleX, scaleY);
@@ -312,13 +324,18 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
     bottle.container.y = this.mainContainer.y + bottle.position.y * this.gameScale;
 
     // Applica la scala del gioco al container
+    interface BottleWithSelectedImage {
+  container: Phaser.GameObjects.Container;
+  selectedImage?: Phaser.GameObjects.Image;
+}
     bottle.container.setScale(this.gameScale);
 
-    const selectedImage = this.add.image(0, 0, BottleSortPuzzleAssetConf.image.bottleGlassSelected);
+const selectedImage = this.add.image(0, 0, BottleSortPuzzleAssetConf.image.bottleGlassSelected);
 
-    selectedImage.setDepth(1);
-    bottle.container.add(selectedImage);
-    (bottle as any).selectedImage = selectedImage;
+selectedImage.setDepth(1);
+bottle.container.add(selectedImage);
+(bottle as BottleWithSelectedImage).selectedImage = selectedImage;
+
 
     // Animazione con offset già calcolato
     const bottleHeight = 632;
@@ -337,13 +354,15 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
 
   //* Scopo: Deseleziona la bottiglia corrente
   private deselectBottle(): void {
-    if (this.selectedBottle) {
-      const selectedImage = (this.selectedBottle as any).selectedImage;
+  if (this.selectedBottle) {
+    const bottle = this.selectedBottle as BottleWithSelectedImage;
+    const selectedImage = bottle.selectedImage;
 
-      if (selectedImage) {
-        selectedImage.destroy();
-        delete (this.selectedBottle as any).selectedImage;
-      }
+    if (selectedImage) {
+      selectedImage.destroy();
+      delete bottle.selectedImage;
+    }
+  
 
       // Riporta la bottiglia nel mainContainer
       this.tweens.add({
@@ -558,42 +577,49 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
 
   //* Scopo: Crea un movimento ad arco corretto
   private createArcMovement(
-    sprite: Phaser.GameObjects.Image,
-    startX: number,
-    startY: number,
-    endX: number,
-    endY: number,
-    onComplete: () => void,
-  ): void {
-    // Calcola il punto di controllo per l'arco (più alto per una curva più pronunciata)
-    const midX = (startX + endX) / 2;
-    const midY = Math.min(startY, endY) - 150; // Arco più alto
+  sprite: Phaser.GameObjects.Image,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  onComplete: () => void,
+): void {
+  // Punto di controllo per la curva di Bézier (più alto per arco più pronunciato)
+  const midX = (startX + endX) / 2;
+  const midY = Math.min(startY, endY) - 150; // Alza l’arco di 150 px
 
-    const duration = 600;
+  const duration = 600;
 
-    const arcTween = this.tweens.add({
-      targets: {t: 0},
-      t: 1,
-      duration: duration,
-      ease: "Power2.easeInOut",
-      onUpdate: (tween) => {
-        const t = tween.getValue();
-
-        // Calcola la posizione lungo la curva di Bézier quadratica
-        const x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * midX + t * t * endX;
-        const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * midY + t * t * endY;
-
-        sprite.setPosition(x, y);
-
-        // Aggiunge una leggera rotazione per rendere il movimento più naturale
-        sprite.setRotation(t * 0.5 - 0.25);
-      },
-      onComplete: () => {
-        sprite.setRotation(0); // Ripristina la rotazione
-        onComplete();
-      },
-    });
+  // Definisco un tipo per il tween target
+  interface TweenTarget {
+    t: number;
   }
+  const target: TweenTarget = { t: 0 };
+
+  const arcTween = this.tweens.add({
+    targets: target,
+    t: 1,
+    duration,
+    ease: "Power2.easeInOut",
+    onUpdate: () => {
+      const t = target.t;
+
+      // Calcolo posizione curva di Bézier quadratica
+      const x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * midX + t * t * endX;
+      const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * midY + t * t * endY;
+
+      sprite.setPosition(x, y);
+
+      // Rotazione per movimento più naturale
+      sprite.setRotation(t * 0.5 - 0.25);
+    },
+    onComplete: () => {
+      sprite.setRotation(0); // Reset rotazione
+      onComplete();
+    },
+  });
+}
+
 
   //* Scopo: Aggiunge tappo e etichetta alla bottiglia completata
   private completeBottle(bottle: Bottle): void {
@@ -895,7 +921,11 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
       this.bookcaseContainer.add(shelf);
 
       // Salva riferimento alla mensola per poterla rimuovere dopo
-      (shelf as any).isShelf = true;
+  
+
+(shelf as unknown as ShelfWithFlag).isShelf = true;
+
+
 
       // Riposiziona le bottiglie di questa riga
       for (let col = 0; col < bottlesInThisRow; col++) {
@@ -941,14 +971,14 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
   }
 
   //* Scopo: Metodo per rimuovere le mensole esistenti
-  private clearShelves(): void {
-    this.bookcaseContainer.list.forEach((child: any) => {
-      if (child.isShelf) {
-        child.destroy();
-      }
-    });
-  }
-
+ private clearShelves(): void {
+  this.bookcaseContainer.list.forEach((child) => {
+    const shelf = child as ShelfWithFlag;
+    if (shelf.isShelf) {
+      shelf.destroy();
+    }
+  });
+}
   //* Scopo: Configura l'interazione con le bottiglie e usa il metodo helper
   private setupInteraction(): void {
     this.bottles.forEach((bottle) => {

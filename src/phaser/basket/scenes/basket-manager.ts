@@ -1,10 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
+
 import Phaser from "phaser";
 
 import {BasketAssetConf} from "../shared/config/asset-conf.const";
 
 import {Game} from "./game";
+
+interface RectangleWithOriginalData extends Phaser.GameObjects.Rectangle {
+  originalData?: {
+    baseX: number;
+    baseY: number;
+    baseWidth: number;
+    baseHeight: number;
+  };
+}
 
 export class BasketManager extends Phaser.Scene {
   private ball!: Phaser.Physics.Arcade.Sprite;
@@ -367,12 +376,12 @@ export class BasketManager extends Phaser.Scene {
     this.basketWalls.children.entries.forEach((wall) => {
       const rect = wall as Phaser.GameObjects.Rectangle;
 
-      (rect as any).originalData = {
-        baseX: rect.x,
-        baseY: rect.y,
-        baseWidth: rect.width,
-        baseHeight: rect.height,
-      };
+(rect as RectangleWithOriginalData).originalData = {
+  baseX: rect.x,
+  baseY: rect.y,
+  baseWidth: rect.width,
+  baseHeight: rect.height,
+};
     });
 
     // metodo per rilevare l'entrata della palla nel basket e assegnare punteggio
@@ -638,18 +647,17 @@ export class BasketManager extends Phaser.Scene {
     const movementType = Math.floor(Math.random() * 3);
 
     // Calcola posizione Y con tolleranze: centro ±1/5 verso il basso, ±2/5 verso l'alto
-    const centerY = screenHeight * 0.5 + this.scale.height; // Posizione centrale attuale
-    let minY = centerY - (screenHeight * 1) / 5; // 1/5 verso l'alto
-    let maxY = centerY + (centerY * 1) / 6; // 1/6 verso il basso
+ const centerY = screenHeight * 0.5 + this.scale.height; // Centro verticale base
 
-    // Se il movimento è verticale, dobbiamo lasciare spazio per l'oscillazione
-    let basketY: number;
+const minY = centerY - screenHeight / 5; // 1/5 verso l'alto
+let maxY = centerY + centerY / 6;        // 1/6 verso il basso
 
-    if (movementType === 1) {
-      maxY = centerY;
-    }
+// Se il movimento è verticale (movementType === 1), non oscilliamo verso il basso
+if (movementType === 1) {
+  maxY = centerY;
+}
 
-    basketY = minY + Math.random() * (maxY - minY);
+const basketY = minY + Math.random() * (maxY - minY);
 
     // Calcola posizione X base
     let basketX: number;

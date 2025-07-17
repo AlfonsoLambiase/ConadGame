@@ -1,11 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
+
 import Phaser from "phaser";
 
 import {AudioManager} from "../components/audioManager";
 import {BubbleShooterAssetConf} from "../shared/config/asset-conf.const";
 
 import {Game} from "./game";
+
+type GridCell = {
+  centerX: number;
+  centerY: number;
+  bubble: Phaser.GameObjects.Image | null;
+  color: string;
+};
+
+type FloatingBubble = {
+  bubble: Phaser.Physics.Arcade.Image;
+  row: number;
+  col: number;
+};
 
 export class BubbleShooterManager extends Phaser.Scene {
   private arrow!: Phaser.GameObjects.Image;
@@ -16,7 +29,11 @@ export class BubbleShooterManager extends Phaser.Scene {
   private rightWall!: Phaser.GameObjects.Rectangle;
   private topWall!: Phaser.GameObjects.Rectangle;
 
-  private grid: any[][] = [];
+  
+  private grid: GridCell[][] = [];
+  
+
+ 
 
   private bubbleSizeDefault = 128; //! 36
   private bubbleSize = 42;
@@ -179,7 +196,8 @@ export class BubbleShooterManager extends Phaser.Scene {
       this.currentTopRowIndex++;
 
       const isEvenRow = this.currentTopRowIndex % 2 === 0;
-      const newRow: any[] = [];
+      const newRow: GridCell[] = [];
+
 
       for (let col = 0; col < this.columns; col++) {
         const x = this.getColumnX(col, isEvenRow);
@@ -312,7 +330,7 @@ export class BubbleShooterManager extends Phaser.Scene {
           const bubble = this.grid[row][col].bubble;
 
           if (bubble) {
-            floatingBubbles.push({bubble, row, col});
+           floatingBubbles.push({ bubble: bubble as Phaser.Physics.Arcade.Image, row, col });
             this.grid[row][col] = {
               ...this.grid[row][col],
               color: "blank",
@@ -633,7 +651,7 @@ export class BubbleShooterManager extends Phaser.Scene {
     const maxBounces = 1;
     const maxDistance = 5000;
 
-    let points: Phaser.Math.Vector2[] = [];
+    const points: Phaser.Math.Vector2[] = [];
     let currentPoint = new Phaser.Math.Vector2(startX, startY);
     let currentAngle = this.arrow.rotation - Math.PI / 2;
     let hitBubble = false;
@@ -1004,10 +1022,16 @@ export class BubbleShooterManager extends Phaser.Scene {
       y: {min: -8, max: 8},
     });
 
+    interface BubbleWithEmitters extends Phaser.Physics.Arcade.Image {
+  trailEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+  sparkleEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+}
+
     // Salva entrambi gli emettitori
-    bubble.trailEmitter = mainTrail;
-    bubble.setDepth(-10);
-    (bubble as any).sparkleEmitter = sparkles;
+ bubble.trailEmitter = mainTrail;
+bubble.setDepth(-10);
+(bubble as BubbleWithEmitters).sparkleEmitter = sparkles;
+
   }
 
   // 6. Particle system
@@ -1062,7 +1086,13 @@ export class BubbleShooterManager extends Phaser.Scene {
     if (bubbleWithTrail.trailEmitter) {
       bubbleWithTrail.trailEmitter.stop();
 
-      const sparkleEmitter = (bubbleWithTrail as any).sparkleEmitter;
+      interface BubbleWithEmitters extends Phaser.Physics.Arcade.Image {
+  trailEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+  sparkleEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+}
+
+     const sparkleEmitter = (bubbleWithTrail as BubbleWithEmitters).sparkleEmitter;
+
 
       if (sparkleEmitter) {
         sparkleEmitter.stop();
@@ -1079,10 +1109,11 @@ export class BubbleShooterManager extends Phaser.Scene {
     } // Particle system - Fino qui
 
     if (!movingBubble.body) return;
+const stationary = stationaryObject as Phaser.GameObjects.GameObject & { x: number; y: number };
 
-    const dx = movingBubble.x - (stationaryObject as any).x;
-    const dy = movingBubble.y - (stationaryObject as any).y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+const dx = movingBubble.x - stationary.x;
+const dy = movingBubble.y - stationary.y;
+const distance = Math.sqrt(dx * dx + dy * dy);
 
     if (distance > this.bubbleSize && stationaryObject !== this.topWall) return;
 

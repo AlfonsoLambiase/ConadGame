@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
+
+
 
 import Phaser from "phaser";
 
@@ -18,7 +18,7 @@ export class Game extends Phaser.Scene {
   timerManager!: TimerManager;
   uiManager!: UIManager;
 
-  exitButton: any;
+  exitButton: unknown;
   theme!: Phaser.Sound.BaseSound;
 
   valueScale!: number;
@@ -125,7 +125,7 @@ export class Game extends Phaser.Scene {
     const scaleX = config.width / refW;
     const scaleY = config.height / refH;
 
-    let calculatedScale = Math.min(scaleX, scaleY);
+    const calculatedScale = Math.min(scaleX, scaleY);
 
     // Impostiamo limiti massimi e minimi
     const minScale = 0.59;

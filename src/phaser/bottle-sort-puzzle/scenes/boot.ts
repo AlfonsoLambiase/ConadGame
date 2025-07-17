@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import * as Phaser from "phaser";
 
 import {loadAudios, loadFonts, loadImages, loadSpritesheets} from "../shared/utils/load-assets";
@@ -48,7 +48,7 @@ export class Boot extends Phaser.Scene {
     // Set up progress bar update
     this.load.on(
       "progress",
-      (value: any) => {
+      (value: number) => {
         this.#progressBar.clear();
         this.#progressBar.fillStyle(0xbf5505, 1);
         this.#progressBar.fillRoundedRect(
