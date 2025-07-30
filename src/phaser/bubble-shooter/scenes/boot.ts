@@ -44,7 +44,9 @@ export class Boot extends Phaser.Scene {
   preload() {
     console.log("Load boot.ts");
     this.#createBars();
-
+ 
+    const loadStartTime = Date.now();
+ 
     // Set up progress bar update
     this.load.on(
       "progress",
@@ -61,23 +63,32 @@ export class Boot extends Phaser.Scene {
       },
       this,
     );
-
+ 
     // Set up loading complete callback
     this.load.on("complete", () => {
-      this.startGame();
+      const elapsed = Date.now() - loadStartTime;
+      const minDuration = 1000; // 1 secondo
+ 
+      if (elapsed < minDuration) {
+        setTimeout(() => {
+          this.startGame();
+        }, minDuration - elapsed);
+      } else {
+        this.startGame();
+      }
     });
-
+ 
     this.#loadAssets();
-
+ 
     // Initialize game data
     this.registry.set(BubbleShooterAssetConf.registry.score, 0);
     this.registry.set(BubbleShooterAssetConf.registry.coins, 0);
-
+ 
     //! Da qui si assegnano le immagini da next dentro il gioco creato in phaser
     // this.load.image("bg1", this.bg1);
     // this.load.image("bg2", this.bg2);
     this.load.image("logoPhaser", this.logoPhaser); //! Solo per test
-
+ 
     console.log("Load Images boot.ts");
   }
 

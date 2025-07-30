@@ -28,10 +28,13 @@ export default function BubbleShooterGame({
   const gameRef = useRef<HTMLDivElement>(null);
   const gameInstance = useRef<Phaser.Game | null>(null);
 
+ // Stato iniziale con due background
   const [backgroundStyle, setBackgroundStyle] = useState<CSSProperties>({
-    backgroundImage: `url('${basePath}/games/bubble-shooter/images/loadingBackground.jpg')`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
+    backgroundImage:
+      "url('/games/bubble-shooter/images/loadingBackground_logo.png'), url('/games/bubble-shooter/images/loadingBackground.png')",
+    backgroundSize: "100% auto, cover", // Prima immagine 150px, seconda copre tutto
+    backgroundPosition: "center, center", // Entrambe centrate
+    backgroundRepeat: "no-repeat, no-repeat",
     width: "100%",
     height: "100%",
   });

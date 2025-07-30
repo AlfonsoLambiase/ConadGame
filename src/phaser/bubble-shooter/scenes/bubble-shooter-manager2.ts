@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import Phaser from "phaser";
 
@@ -13,13 +14,11 @@ type GridCell = {
   color: string;
 };
 
-
-
-  interface BubbleWithEmitters extends Phaser.Physics.Arcade.Image {
-  trailEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
-  sparkleEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
-}
-
+type FloatingBubble = {
+  bubble: Phaser.Physics.Arcade.Image;
+  row: number;
+  col: number;
+};
 
 export class BubbleShooterManager extends Phaser.Scene {
   private arrow!: Phaser.GameObjects.Image;
@@ -30,10 +29,14 @@ export class BubbleShooterManager extends Phaser.Scene {
   private rightWall!: Phaser.GameObjects.Rectangle;
   private topWall!: Phaser.GameObjects.Rectangle;
 
+  
   private grid: GridCell[][] = [];
+  
 
-  private bubbleSizeDefault = 128;
-  private bubbleSize = 132;
+ 
+
+  private bubbleSizeDefault = 128; //! 36
+  private bubbleSize = 42;
   private scaleBubble = 1;
   private displayGameWidth = 599;
   private displayGameHeight = 992;
@@ -68,9 +71,8 @@ export class BubbleShooterManager extends Phaser.Scene {
 
   private aimLine!: Phaser.GameObjects.Graphics; // linea tratteggiata puntatore
 
-  private visualVerticalOffset = 25; // Nuovo offset solo per la visualizzazione
-  private verticalSpacingBubble = 0; //! Errore se metto un valore - 10 dalla sesta fila non passa si sovrappongono //! modificare dimensione-spazio png bolla
-  private horzintalSpacingBubble = 6; //! modificare dimensione-spazio png bolla
+  private verticalSpacingBubble = 0; //! Errore se metto un valore - 10 dalla sesta fila non passa si sovrappongono
+  private horzintalSpacingBubble = 6;
   private sizeCircleCollider = 0.9;
   private offsetDimensionCircleCollisionWall = 0.7;
 
@@ -117,6 +119,7 @@ export class BubbleShooterManager extends Phaser.Scene {
       this.canShoot = true;
       this.isGameOver = false;
 
+      this.createBackground();
       this.createWalls();
       this.createBubbleElements();
       this.setupInputHandlers();
@@ -194,6 +197,7 @@ export class BubbleShooterManager extends Phaser.Scene {
 
       const isEvenRow = this.currentTopRowIndex % 2 === 0;
       const newRow: GridCell[] = [];
+
 
       for (let col = 0; col < this.columns; col++) {
         const x = this.getColumnX(col, isEvenRow);
@@ -326,7 +330,7 @@ export class BubbleShooterManager extends Phaser.Scene {
           const bubble = this.grid[row][col].bubble;
 
           if (bubble) {
-            floatingBubbles.push({ bubble: bubble as Phaser.Physics.Arcade.Image, row, col });
+           floatingBubbles.push({ bubble: bubble as Phaser.Physics.Arcade.Image, row, col });
             this.grid[row][col] = {
               ...this.grid[row][col],
               color: "blank",
@@ -482,25 +486,37 @@ export class BubbleShooterManager extends Phaser.Scene {
     this.gridStartX =
       this.bgPnlGameWidthCenter - (this.columns * this.bubbleSize) / 2 + this.bubbleSize / 2;
     this.gridStartY = this.bgPnlGameHeightCenter - this.bgPnlGameHeight / 2 + this.bubbleSize / 2;
+
+    // Posizione shooter: 100px sotto la fine della griglia
+    this.shooterY = this.gameHeight - this.gameScene.setDynamicValueBasedOnScale(100, 300);
   }
 
   private computeBubbleSize(): number {
     const sizeBubble = this.bgPnlGameWidth / this.columns;
 
-    this.scaleBubble = (sizeBubble * 1.2) / this.bubbleSizeDefault; //! modificare  * 1.2 per ridimensionare solo il png della bolla
+    this.scaleBubble = (sizeBubble + 0) / this.bubbleSizeDefault; //! regolare con queste variabili numeriche 0
 
     return sizeBubble - this.horzintalSpacingBubble;
+  }
+
+  //* Scopo: Aggiunge un’immagine di sfondo nella scena.
+  createBackground() {
+    // const sectionBackground = this.add.image(
+    //   this.bgPnlGameWidthCenter,
+    //   this.bgPnlGameHeightCenter,
+    //   BubbleShooterAssetConf.image.backgroundImage,
+    // );
+    // sectionBackground.setOrigin(0.5).setDisplaySize(this.bgPnlGameWidth, this.bgPnlGameHeight);
   }
 
   //* Scopo: Crea i muri sinistro, destro e superiore per gestire le collisioni fisiche delle bolle.
   // Usa rettangoli invisibili con fisica statica (true).
   // Serve per far rimbalzare le bolle o farle fermare al soffitto.
   createWalls() {
-    const thicknessX = 10; // spessore pareti laterali
-    const leftPosX = thicknessX / 2;
-    const rightPosX = this.gameWidth - thicknessX / 2;
-
+    const leftPosX = this.bgPnlGameWidthCenter - this.bgPnlGameWidth / 2 - 5;
+    const rightPosX = this.bgPnlGameWidthCenter + this.bgPnlGameWidth / 2 + 5;
     const verticalWallHeight = this.gameHeight;
+    const thicknessX = 10;
 
     const topY = this.marginTop - 5;
 
@@ -510,7 +526,7 @@ export class BubbleShooterManager extends Phaser.Scene {
       width: number,
       height: number,
     ): Phaser.GameObjects.Rectangle => {
-      const wall = this.add.rectangle(x, y, width, height, 0x800080, 0.0); // mettere 0.5 se si vuole vedere il rettangolo creato
+      const wall = this.add.rectangle(x, y, width, height, 0x800080, 0.0); //! mettere 0.5 se si vuole un alpha piu visibile
 
       this.physics.add.existing(wall, true);
 
@@ -532,28 +548,6 @@ export class BubbleShooterManager extends Phaser.Scene {
     // popola la griglia iniziale di bolle
     this.createBubbles();
 
-    // Aggiunge la linea divisoria centrata orizzontalmente - oltrepassandola si va in gameover
-    // Calcola la Y della riga dopo l'ultima
-    const dividerY = this.getRowY(this.rows - 1);
-
-    const dividerImage = this.add.image(
-      this.scale.width / 2,
-      dividerY,
-      BubbleShooterAssetConf.image.lineLimitEndGame,
-    );
-
-    // Applica la scala verticale delle bolle
-    dividerImage.setScale(1, this.scaleBubble); // X = 1 (niente stiramento), Y = come le bolle
-
-    // Allunga la larghezza per coprire tutto lo schermo
-    dividerImage.displayWidth = this.scale.width;
-
-    // (Facoltativo) Imposta profondità se vuoi che sia visibile sopra o sotto altri elementi
-    dividerImage.setDepth(1).setAlpha(0);
-
-    // Posizione shooter: 100px sotto la fine della griglia
-    this.shooterY = dividerY;
-
     // aggiunge background margherita bolla
     const margherita = this.add
       .image(this.bgPnlGameWidthCenter, this.shooterY, BubbleShooterAssetConf.image.margherita)
@@ -564,7 +558,7 @@ export class BubbleShooterManager extends Phaser.Scene {
 
     // aggiunge la freccia
     this.arrow = this.add
-      .image(this.bgPnlGameWidthCenter, this.shooterY, BubbleShooterAssetConf.image.arrow)
+      .image(this.bgPnlGameWidthCenter, this.shooterY, "arrow")
       .setOrigin(0.5, 1)
       .setScale(0.3);
 
@@ -572,7 +566,7 @@ export class BubbleShooterManager extends Phaser.Scene {
     this.initialBubble = this.add
       .image(
         this.bgPnlGameWidthCenter,
-        this.shooterY - (this.bubbleSize * 2) / 3,
+        this.shooterY - this.bubbleSize / 2,
         this.currentBubbleColor,
       )
       .setOrigin(0.5, 0)
@@ -580,16 +574,8 @@ export class BubbleShooterManager extends Phaser.Scene {
       .setAlpha(1);
 
     // aggiunge la bolla sucessiva da lanciare
-    // Ottieni dimensioni reali della margherita (dopo scala)
-    const margWidth = margherita.displayWidth;
-    const margHeight = margherita.displayHeight;
-
-    // Calcola posizione a sinistra e in basso rispetto al centro della margherita
-    const nextBubbleX = margherita.x - margWidth * 0.35;
-    const nextBubbleY = margherita.y + margHeight * 0.05;
-
     this.nextBubble = this.add
-      .image(nextBubbleX, nextBubbleY, this.nextBubbleColor)
+      .image(100, this.shooterY - this.bubbleSize / 2, this.nextBubbleColor)
       .setOrigin(0.5, 0)
       .setScale(this.scaleBubble)
       .setAlpha(1);
@@ -663,7 +649,7 @@ export class BubbleShooterManager extends Phaser.Scene {
     const startY = this.arrow.y;
 
     const maxBounces = 1;
-    const maxDistance = this.gameScene.setDynamicValueBasedOnScale(150, 300); // 5000
+    const maxDistance = 5000;
 
     const points: Phaser.Math.Vector2[] = [];
     let currentPoint = new Phaser.Math.Vector2(startX, startY);
@@ -824,6 +810,26 @@ export class BubbleShooterManager extends Phaser.Scene {
     }
   }
 
+  //! Cancellare
+  // // Metodo opzionale per modificare dinamicamente le proprietà della linea
+  // public setAimLineProperties(config: {
+  //   radius?: number;
+  //   spacing?: number;
+  //   alpha?: number;
+  //   color?: number;
+  //   hitPointRadius?: number;
+  //   hitPointColor?: number;
+  //   hitPointAlpha?: number;
+  // }) {
+  //   if (config.radius !== undefined) this.aimLineRadius = config.radius;
+  //   if (config.spacing !== undefined) this.aimLineSpacing = config.spacing;
+  //   if (config.alpha !== undefined) this.aimLineAlpha = config.alpha;
+  //   if (config.color !== undefined) this.aimLineColor = config.color;
+  //   if (config.hitPointRadius !== undefined) this.aimLineHitPointRadius = config.hitPointRadius;
+  //   if (config.hitPointColor !== undefined) this.aimLineHitPointColor = config.hitPointColor;
+  //   if (config.hitPointAlpha !== undefined) this.aimLineHitPointAlpha = config.hitPointAlpha;
+  // }
+
   //* Scopo: Popola la griglia iniziale di bolle nella parte superiore:
   // Le prime filledRows righe vengono riempite con bolle colorate.
   // Le restanti righe restano vuote (color: "blank").
@@ -864,6 +870,25 @@ export class BubbleShooterManager extends Phaser.Scene {
         }
       }
       this.grid.push(rowArray);
+
+      // Aggiunge la linea divisoria centrata orizzontalmente - oltrepassandola si va in gameover
+      // Calcola la Y della riga dopo l'ultima
+      const dividerY = this.getRowY(this.rows - 1);
+
+      const dividerImage = this.add.image(
+        this.scale.width / 2,
+        dividerY,
+        BubbleShooterAssetConf.image.lineLimitEndGame,
+      );
+
+      // Applica la scala verticale delle bolle
+      dividerImage.setScale(1, this.scaleBubble); // X = 1 (niente stiramento), Y = come le bolle
+
+      // Allunga la larghezza per coprire tutto lo schermo
+      dividerImage.displayWidth = this.scale.width;
+
+      // (Facoltativo) Imposta profondità se vuoi che sia visibile sopra o sotto altri elementi
+      dividerImage.setDepth(1);
     }
   }
 
@@ -906,7 +931,8 @@ export class BubbleShooterManager extends Phaser.Scene {
     const angle = this.arrow.rotation;
 
     // 4. Particle system
-    const bubble = this.createMovingBubble(angle) as BubbleWithTrail;
+    //const bubble = this.createMovingBubble(angle); //! Originale
+    const bubble = this.createMovingBubble(angle) as BubbleWithTrail; //! Particle system
 
     bubble.setScale(this.scaleBubble);
     this.updateNextBubbleTextures();
@@ -996,10 +1022,16 @@ export class BubbleShooterManager extends Phaser.Scene {
       y: {min: -8, max: 8},
     });
 
+    interface BubbleWithEmitters extends Phaser.Physics.Arcade.Image {
+  trailEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+  sparkleEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+}
+
     // Salva entrambi gli emettitori
-    bubble.trailEmitter = mainTrail;
-    bubble.setDepth(-10);
-    (bubble as BubbleWithEmitters).sparkleEmitter = sparkles;
+ bubble.trailEmitter = mainTrail;
+bubble.setDepth(-10);
+(bubble as BubbleWithEmitters).sparkleEmitter = sparkles;
+
   }
 
   // 6. Particle system
@@ -1054,7 +1086,13 @@ export class BubbleShooterManager extends Phaser.Scene {
     if (bubbleWithTrail.trailEmitter) {
       bubbleWithTrail.trailEmitter.stop();
 
-      const sparkleEmitter = (bubbleWithTrail as BubbleWithEmitters).sparkleEmitter;
+      interface BubbleWithEmitters extends Phaser.Physics.Arcade.Image {
+  trailEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+  sparkleEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+}
+
+     const sparkleEmitter = (bubbleWithTrail as BubbleWithEmitters).sparkleEmitter;
+
 
       if (sparkleEmitter) {
         sparkleEmitter.stop();
@@ -1071,10 +1109,11 @@ export class BubbleShooterManager extends Phaser.Scene {
     } // Particle system - Fino qui
 
     if (!movingBubble.body) return;
+const stationary = stationaryObject as Phaser.GameObjects.GameObject & { x: number; y: number };
 
-    const dx = movingBubble.x - (stationaryObject as Phaser.GameObjects.GameObject).x;
-    const dy = movingBubble.y - (stationaryObject as Phaser.GameObjects.GameObject).y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+const dx = movingBubble.x - stationary.x;
+const dy = movingBubble.y - stationary.y;
+const distance = Math.sqrt(dx * dx + dy * dy);
 
     if (distance > this.bubbleSize && stationaryObject !== this.topWall) return;
 

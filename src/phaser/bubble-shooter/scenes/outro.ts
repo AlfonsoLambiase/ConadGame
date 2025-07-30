@@ -1,42 +1,52 @@
 
 import {BubbleShooterAssetConf} from "../shared/config/asset-conf.const";
 
+ 
 export class Outro extends Phaser.Scene {
   imageKey: string = "endFailed"; // di default è endFailed
-
+ 
   constructor() {
     super({key: BubbleShooterAssetConf.scene.outro});
   }
-
+ 
   init({resultStatus}: {resultStatus: "Failed" | "Win"}) {
     if (resultStatus !== "Failed") {
       this.imageKey = `end${resultStatus}`;
     }
-
-    this.time.delayedCall(
+ 
+     this.time.delayedCall(
       3000,
       () => {
-        window.location.href = "/";
+        // redirect a root della app
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
       },
       [],
       this,
     );
   }
-
+ 
   create() {
-    const {width, height} = this.scale; // Ottieni le dimensioni del canvas
-
-    const image = this.add.image(width / 2, height / 2, this.imageKey).setOrigin(0.5, 0.5);
-
-    image.setDisplaySize(this.scale.width, this.scale.height); //* Questo deforma
-
-    //! Metodo alternativo vedere quale si adatta di piu.
-    // Calcola il fattore di scala mantenendo il rapporto d'aspetto //* Questo non dovrebbe deformare ma puo ritagliare
-    // const scaleX = width / image.width;
-    // const scaleY = height / image.height;
-    // const scale = Math.max(scaleX, scaleY); // Usa il più grande per coprire tutto il canvas
-    //image.setScale(scale);
-
+    //this.imageKey = `endFailed`; //* solo per test
+    //this.imageKey = `endWin`; //* solo per test
+ 
+    const {width, height} = this.scale;
+ 
+    // Sfondo centrato e deformato per coprire tutto
+    this.add
+      .image(width / 2, height / 2, BubbleShooterAssetConf.image.endBackground)
+      .setOrigin(0.5, 0.5)
+      .setDisplaySize(width, height);
+ 
+    // Immagine principale con origine in basso al centro
+    const foreground = this.add.image(width / 2, height, this.imageKey).setOrigin(0.5, 1); // Origine in basso al centro
+ 
+    // Calcola scala proporzionale in base alla larghezza dello schermo
+    const scale = width / foreground.width;
+ 
+    foreground.setScale(scale);
+ 
     console.log("registry.score: ", this.registry.get(BubbleShooterAssetConf.registry.score));
   }
 }

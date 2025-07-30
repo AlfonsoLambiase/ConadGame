@@ -21,7 +21,7 @@ export const BubbleShooterAssetConf = {
   image: {
     // for timerManager
     iconSandClock: "iconSandClock",
-
+ 
     // for game
     backgroundGame: "backgroundGame",
     backgroundLogo: "backgroundLogo",
@@ -33,7 +33,8 @@ export const BubbleShooterAssetConf = {
     logoPhaser: "logoPhaser", //! Solo per test
     endWin: "endWin",
     endFailed: "endFailed",
-
+    endBackground: "endBackground",
+ 
     // for specific game
     ballRed: "ballRed",
     ballBlue: "ballBlue",
@@ -45,13 +46,13 @@ export const BubbleShooterAssetConf = {
     margherita: "margherita",
     lineLimitEndGame: "lineLimitEndGame",
     bubbleTrail: "bubbleTrail",
-
+ 
     // for exitManager
     btnExitGame: "btnExitGame",
     btnConfirm: "btnConfirm",
     btnCancel: "btnCancel",
     popupExitGame: "popupExitGame",
-
+ 
     // for tutorial
     tutorialTastoAvanti: "tutorialTastoAvanti",
   },
@@ -87,7 +88,7 @@ export const BubbleShooterAssetConf = {
       frameHeight: 253,
       key: "tutorialText03",
     },
-
+ 
     // for confetti - fine partita
     confetti_left: {
       frameWidth: 195,
@@ -99,7 +100,7 @@ export const BubbleShooterAssetConf = {
       frameHeight: 177.5,
       key: "confetti_right",
     },
-
+ 
     // for starsEffect
     starsEffect: {
       // 20
