@@ -26,10 +26,13 @@ export default function BottleSortPuzzleGame({
   const gameRef = useRef<HTMLDivElement>(null);
   const gameInstance = useRef<Phaser.Game | null>(null);
 
+// Stato iniziale con due background
   const [backgroundStyle, setBackgroundStyle] = useState<CSSProperties>({
-    backgroundImage: "url('/games/bottle-sort-puzzle/images/loadingBackground.jpg')",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
+    backgroundImage:
+      "url('/games/bottle-sort-puzzle/images/loadingBackground_logo.png'), url('/games/bottle-sort-puzzle/images/loadingBackground.png')",
+    backgroundSize: "100% auto, cover", // Prima immagine 150px, seconda copre tutto
+    backgroundPosition: "center, center", // Entrambe centrate
+    backgroundRepeat: "no-repeat, no-repeat",
     width: "100%",
     height: "100%",
   });
@@ -52,6 +55,7 @@ export default function BottleSortPuzzleGame({
     game.scene.add(BottleSortPuzzleAssetConf.scene.bottleSortManager, BottleSortPuzzleManager);
     game.scene.add(BottleSortPuzzleAssetConf.scene.exitManager, ExitManager);
     game.scene.add(BottleSortPuzzleAssetConf.scene.outro, Outro);
+ 
 
     // LOGHI dinamici (qui metti la tua logica reale)
     let sponsorLogo = "/games/platformer/images/logo_purinaone.png";

@@ -14,7 +14,7 @@ export const BottleSortPuzzleConfig: Phaser.Types.Core.GameConfig = {
     default: "arcade",
     arcade: {
       gravity: {y: 0, x: 0},
-      debug: true,
+      debug: false,
     },
   },
   transparent: true,

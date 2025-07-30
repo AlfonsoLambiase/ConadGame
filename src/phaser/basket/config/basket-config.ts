@@ -1,4 +1,4 @@
-export const GameDemo02Config: Phaser.Types.Core.GameConfig = {
+export const BasketConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.CANVAS,
   width: 1920,
   height: 1080,

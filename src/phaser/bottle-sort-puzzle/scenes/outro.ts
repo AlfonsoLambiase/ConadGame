@@ -1,19 +1,19 @@
-import {BottleSortPuzzleAssetConf} from "../shared/config/asset-conf.const";
-
-
+import { BottleSortPuzzleAssetConf} from "../shared/config/asset-conf.const";
+ 
+ 
 export class Outro extends Phaser.Scene {
-  imageKey: string = "endFailed";
-
+  imageKey: string = "endFailed"; // di default è endFailed
+ 
   constructor() {
     super({key: BottleSortPuzzleAssetConf.scene.outro});
   }
-
+ 
   init({resultStatus}: {resultStatus: "Failed" | "Win"}) {
     if (resultStatus !== "Failed") {
       this.imageKey = `end${resultStatus}`;
     }
-
-    this.time.delayedCall(
+ 
+     this.time.delayedCall(
       3000,
       () => {
         // redirect a root della app
@@ -25,10 +25,27 @@ export class Outro extends Phaser.Scene {
       this,
     );
   }
-
+ 
   create() {
+    //this.imageKey = `endFailed`; //* solo per test
+    //this.imageKey = `endWin`; //* solo per test
+ 
     const {width, height} = this.scale;
-    const image = this.add.image(width / 2, height / 2, this.imageKey).setOrigin(0.5, 0.5);
-    image.setDisplaySize(this.scale.width, this.scale.height);
+ 
+    // Sfondo centrato e deformato per coprire tutto
+    this.add
+      .image(width / 2, height / 2, BottleSortPuzzleAssetConf.image.endBackground)
+      .setOrigin(0.5, 0.5)
+      .setDisplaySize(width, height);
+ 
+    // Immagine principale con origine in basso al centro
+    const foreground = this.add.image(width / 2, height, this.imageKey).setOrigin(0.5, 1); // Origine in basso al centro
+ 
+    // Calcola scala proporzionale in base alla larghezza dello schermo
+    const scale = width / foreground.width;
+ 
+    foreground.setScale(scale);
+ 
+    console.log("registry.score: ", this.registry.get(BottleSortPuzzleAssetConf.registry.score));
   }
 }

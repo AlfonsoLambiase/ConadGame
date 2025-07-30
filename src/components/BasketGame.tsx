@@ -12,7 +12,7 @@ import { ExitManager } from "@/phaser/basket/scenes/exit-manager";
 import { TimerManager } from "@/phaser/basket/scenes/timer-manager";
 import { BasketManager } from "@/phaser/basket/scenes/basket-manager";
 import { BasketAssetConf } from "@/phaser/basket/shared/config/asset-conf.const";
-import { GameDemo02Config } from "@/phaser/basket/config/basket-config";
+import { BasketConfig } from "@/phaser/basket/config/basket-config";
 import { UIManager } from "@/phaser/basket/components/UIManager";
 
 // Qui definisci il basePath da env
@@ -47,7 +47,7 @@ export default function GameDemo02Game({
     if (!gameRef.current) return;
 
     const game = new Phaser.Game({
-      ...GameDemo02Config,
+      ...BasketConfig,
       parent: gameRef.current,
     });
 

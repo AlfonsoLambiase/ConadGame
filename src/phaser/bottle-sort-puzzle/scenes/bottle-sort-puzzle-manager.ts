@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import Phaser from "phaser";
 
@@ -16,11 +15,9 @@ interface BottleWithSelectedImage {
   selectedImage?: Phaser.GameObjects.Image;
 }
 
-
 interface ShelfWithFlag extends Phaser.GameObjects.GameObject {
   isShelf?: boolean;
 }
-
 
 interface Bottle {
   container: Phaser.GameObjects.Container;
@@ -32,9 +29,8 @@ interface Bottle {
   isCompleted: boolean;
   label?: Phaser.GameObjects.Image;
   cap?: Phaser.GameObjects.Image;
+
 }
-
-
 
 export class BottleSortPuzzleManager extends Phaser.Scene {
   audioManager!: AudioManager;
@@ -70,9 +66,13 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
   private readonly BOTTLE_TOP_BASE = -316; // Posizione del bordo superiore della bottiglia alla scala 1.0
   private readonly EXIT_OFFSET = -50; // Offset extra sopra il bordo della bottiglia
 
+  private spacingXBottle: number = 10;
+
   public isActiveBottle: boolean = false;
 
   public isTouchBottle: boolean = false;
+
+  public offsetContainerY: number = 50;
 
   constructor() {
     super({key: BottleSortPuzzleAssetConf.scene.bottleSortManager});
@@ -85,8 +85,6 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
   }
 
   create() {
-    console.log("Start game bottle sort puzzle");
-
     this.computeLayoutDimensions();
     this.createContainers();
     this.createBottles();
@@ -105,8 +103,14 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
 
   //* Scopo: Crea il container principale che conterrà tutti gli elementi del gioco
   private createContainers(): void {
-    this.bookcaseContainer = this.add.container(this.gameWidth / 2, this.gameHeight / 2);
-    this.mainContainer = this.add.container(this.gameWidth / 2, this.gameHeight / 2);
+    this.bookcaseContainer = this.add.container(
+      this.gameWidth / 2,
+      this.gameHeight / 2 - this.offsetContainerY,
+    );
+    this.mainContainer = this.add.container(
+      this.gameWidth / 2,
+      this.gameHeight / 2 - this.offsetContainerY,
+    );
   }
 
   //* Scopo: Applica la scala responsiva al container principale
@@ -119,7 +123,7 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
     const scaleY = this.gameHeight / baseHeight;
 
     // Tolleranza modificabile 5% piu piccolo del valore ottenuto
-  const scaleTolerance = 0.05;
+    const scaleTolerance = 0.05;
 
     // Usa la scala minore per mantenere le proporzioni (stesso valore per X e Y)
     let calculatedScale = Math.min(scaleX, scaleY);
@@ -143,13 +147,13 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
   private createBottles(): void {
     const bottleWidth = 354;
     const bottleHeight = 632;
-    const spacingX = bottleWidth + 40; // tolleranza larghezza tra colonne
+    const spacingX = bottleWidth + this.spacingXBottle; // tolleranza larghezza tra colonne
     const spacingY = bottleHeight + 150; // tolleranza altezza tra file
 
     const maxCols = 3;
     const topRowCount = Math.min(this.BOTTLE_COUNT, maxCols);
     const remainingCount = this.BOTTLE_COUNT - topRowCount;
-    const fullRows = Math.ceil(remainingCount / maxCols); // non usato ma lo lascio se serve debug
+    // const fullRows = Math.ceil(remainingCount / maxCols); // non usato ma lo lascio se serve debug
     const totalRows = (remainingCount > 0 ? 1 : 0) + 1; // riga top + eventuali righe sotto
 
     const startY = -((totalRows - 1) * spacingY) / 2;
@@ -314,6 +318,7 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
   //* Scopo: Crea un bordo luminoso attorno alla bottiglia
   private selectBottle(bottle: Bottle): void {
     this.selectedBottle = bottle;
+    this.isAnimating = true;
 
     // RIMUOVI la bottiglia dal mainContainer e aggiungila direttamente alla scena
     this.mainContainer.remove(bottle.container);
@@ -324,62 +329,109 @@ export class BottleSortPuzzleManager extends Phaser.Scene {
     bottle.container.y = this.mainContainer.y + bottle.position.y * this.gameScale;
 
     // Applica la scala del gioco al container
-    interface BottleWithSelectedImage {
-  container: Phaser.GameObjects.Container;
-  selectedImage?: Phaser.GameObjects.Image;
-}
     bottle.container.setScale(this.gameScale);
 
-const selectedImage = this.add.image(0, 0, BottleSortPuzzleAssetConf.image.bottleGlassSelected);
+    const selectedImage = this.add.image(0, 0, BottleSortPuzzleAssetConf.image.bottleGlassSelected);
 
-selectedImage.setDepth(1);
-bottle.container.add(selectedImage);
-(bottle as BottleWithSelectedImage).selectedImage = selectedImage;
+    selectedImage.setDepth(1);
+    bottle.container.add(selectedImage);
+    (bottle as BottleWithSelectedImage ).selectedImage = selectedImage;
 
-
-    // Animazione con offset già calcolato
+    // Calcola l'offset per spostarsi in alto (1/5 della dimensione della bottiglia)
     const bottleHeight = 632;
-    const scaleIncrease = 0.15;
-    const offsetY = -(bottleHeight * scaleIncrease) / 2;
+    const offsetY = -(bottleHeight / 10);
 
+    // Animazione di spostamento verso l'alto (senza scala)
     this.tweens.add({
       targets: bottle.container,
-      scaleX: this.gameScale * 1.15,
-      scaleY: this.gameScale * 1.15,
       y: bottle.container.y + offsetY * this.gameScale,
       duration: 300,
       ease: "Power2.easeOut",
+      onComplete: () => {
+        this.time.delayedCall(350, () => {
+          this.isAnimating = false; // Add this line
+        });
+      },
     });
   }
 
+  //! ha dato un bug
   //* Scopo: Deseleziona la bottiglia corrente
+  // private deselectBottle(): void {
+  //   if (this.selectedBottle) {
+  //     this.isAnimating = true;
+
+  //     const selectedImage = (this.selectedBottle as any).selectedImage;
+
+  //     if (selectedImage) {
+  //       selectedImage.destroy();
+  //       delete (this.selectedBottle as any).selectedImage;
+  //     }
+
+  //     // Riporta la bottiglia nella posizione originale
+  //     this.tweens.add({
+  //       targets: this.selectedBottle.container,
+  //       x: this.mainContainer.x + this.selectedBottle.position.x * this.gameScale,
+  //       y: this.mainContainer.y + this.selectedBottle.position.y * this.gameScale,
+  //       duration: 200,
+  //       ease: "Power2.easeOut",
+  //       onComplete: () => {
+  //         // Rimuovi dalla scena e rimetti nel mainContainer
+  //         this.selectedBottle!.container.x = this.selectedBottle!.position.x;
+  //         this.selectedBottle!.container.y = this.selectedBottle!.position.y;
+  //         this.selectedBottle!.container.setScale(1);
+  //         this.mainContainer.add(this.selectedBottle!.container);
+  //         this.selectedBottle = null;
+  //         this.time.delayedCall(350, () => {
+  //           this.isAnimating = false; // Add this line
+  //         });
+
+  //         // Controlla se ci sono ancora mosse possibili
+  //         console.log("checkPossibleMoves: " + this.checkPossibleMoves());
+  //         if (!this.checkPossibleMoves()) {
+  //           this.handleNoMovesAvailable();
+  //         }
+  //       },
+  //     });
+  //   }
+  // }
+  //! Corretto bug controllare
   private deselectBottle(): void {
-  if (this.selectedBottle) {
-    const bottle = this.selectedBottle as BottleWithSelectedImage;
-    const selectedImage = bottle.selectedImage;
+    if (this.selectedBottle) {
+      this.isAnimating = true;
 
-    if (selectedImage) {
-      selectedImage.destroy();
-      delete bottle.selectedImage;
-    }
-  
+      const bottleToReset = this.selectedBottle; // 👈 salva bottiglia attuale
+      const selectedImage = (bottleToReset as BottleWithSelectedImage).selectedImage;
 
-      // Riporta la bottiglia nel mainContainer
+      if (selectedImage) {
+        selectedImage.destroy();
+        delete (bottleToReset as BottleWithSelectedImage).selectedImage;
+      }
+
+      // Tween sulla posizione
       this.tweens.add({
-        targets: this.selectedBottle.container,
-        scaleX: this.gameScale,
-        scaleY: this.gameScale,
-        x: this.mainContainer.x + this.selectedBottle.position.x * this.gameScale,
-        y: this.mainContainer.y + this.selectedBottle.position.y * this.gameScale,
+        targets: bottleToReset.container,
+        x: this.mainContainer.x + bottleToReset.position.x * this.gameScale,
+        y: this.mainContainer.y + bottleToReset.position.y * this.gameScale,
         duration: 200,
         ease: "Power2.easeOut",
         onComplete: () => {
-          // Rimuovi dalla scena e rimetti nel mainContainer
-          this.selectedBottle!.container.x = this.selectedBottle!.position.x;
-          this.selectedBottle!.container.y = this.selectedBottle!.position.y;
-          this.selectedBottle!.container.setScale(1);
-          this.mainContainer.add(this.selectedBottle!.container);
+          // Usa la variabile salvata, non this.selectedBottle!
+          bottleToReset.container.x = bottleToReset.position.x;
+          bottleToReset.container.y = bottleToReset.position.y;
+          bottleToReset.container.setScale(1);
+          this.mainContainer.add(bottleToReset.container);
+
           this.selectedBottle = null;
+
+          this.time.delayedCall(350, () => {
+            this.isAnimating = false;
+          });
+
+          console.log("checkPossibleMoves: " + this.checkPossibleMoves());
+          if (!this.checkPossibleMoves()) {
+            this.handleNoMovesAvailable();
+          }
         },
       });
     }
@@ -398,6 +450,15 @@ bottle.container.add(selectedImage);
 
     // Esegui il movimento
     this.moveObjects(fromBottle, toBottle, moveCount);
+
+    // Controlla se ci sono ancora mosse possibili dopo il movimento
+    this.time.delayedCall(1000, () => {
+      // Aspetta che finisca l'animazione
+      console.log("checkPossibleMoves: " + this.checkPossibleMoves());
+      if (!this.checkPossibleMoves()) {
+        this.handleNoMovesAvailable();
+      }
+    });
   }
 
   //* Scopo: Controlla se un movimento è valido e quanti oggetti possono essere spostati
@@ -485,8 +546,10 @@ bottle.container.add(selectedImage);
     if (index >= objects.length) {
       onComplete();
       this.isActiveBottle = false;
-      this.isAnimating = false;
-      console.log("completata animazione");
+      this.time.delayedCall(350, () => {
+        this.isAnimating = false; // Add this line
+      });
+      //console.log("completata animazione");
 
       return;
     }
@@ -495,8 +558,8 @@ bottle.container.add(selectedImage);
     const sprite = obj.sprite;
 
     // Coordinate relative al container principale
-    const startX = fromBottle.position.x;
-    const startY = fromBottle.position.y + this.getObjectPositionInBottle(originalIndex);
+    // const startX = fromBottle.position.x;
+    // const startY = fromBottle.position.y + this.getObjectPositionInBottle(originalIndex);
 
     const endX = toBottle.position.x;
     // Posizione finale all'interno della bottiglia di destinazione
@@ -577,49 +640,44 @@ bottle.container.add(selectedImage);
 
   //* Scopo: Crea un movimento ad arco corretto
   private createArcMovement(
-  sprite: Phaser.GameObjects.Image,
-  startX: number,
-  startY: number,
-  endX: number,
-  endY: number,
-  onComplete: () => void,
-): void {
-  // Punto di controllo per la curva di Bézier (più alto per arco più pronunciato)
-  const midX = (startX + endX) / 2;
-  const midY = Math.min(startY, endY) - 150; // Alza l’arco di 150 px
+    sprite: Phaser.GameObjects.Image,
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    onComplete: () => void,
+  ): void {
+    // Calcola il punto di controllo per l'arco (più alto per una curva più pronunciata)
+    const midX = (startX + endX) / 2;
+    const midY = Math.min(startY, endY) - 150; // Arco più alto
 
-  const duration = 600;
+    const duration = 600;
 
-  // Definisco un tipo per il tween target
-  interface TweenTarget {
-    t: number;
+  this.tweens.add({
+  targets: { t: 0 },
+  t: 1,
+  duration: duration,
+  ease: "Power2.easeInOut",
+
+  onUpdate: (_tween: Phaser.Tweens.Tween, target: { t: number }) => {
+    const t = target.t;
+
+    // Calcola la posizione lungo la curva di Bézier quadratica
+    const x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * midX + t * t * endX;
+    const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * midY + t * t * endY;
+
+    sprite.setPosition(x, y);
+
+    // Aggiunge una leggera rotazione per rendere il movimento più naturale
+    sprite.setRotation(t * 0.5 - 0.25);
+  },
+
+  onComplete: () => {
+    sprite.setRotation(0); // Ripristina la rotazione
+    onComplete();
+  },
+});
   }
-  const target: TweenTarget = { t: 0 };
-
-  const arcTween = this.tweens.add({
-    targets: target,
-    t: 1,
-    duration,
-    ease: "Power2.easeInOut",
-    onUpdate: () => {
-      const t = target.t;
-
-      // Calcolo posizione curva di Bézier quadratica
-      const x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * midX + t * t * endX;
-      const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * midY + t * t * endY;
-
-      sprite.setPosition(x, y);
-
-      // Rotazione per movimento più naturale
-      sprite.setRotation(t * 0.5 - 0.25);
-    },
-    onComplete: () => {
-      sprite.setRotation(0); // Reset rotazione
-      onComplete();
-    },
-  });
-}
-
 
   //* Scopo: Aggiunge tappo e etichetta alla bottiglia completata
   private completeBottle(bottle: Bottle): void {
@@ -701,18 +759,26 @@ bottle.container.add(selectedImage);
     const relativeX = bottle.position.x;
     const relativeY = bottle.position.y;
 
-    const particles = this.add.particles(relativeX, relativeY, "product0", {
-      speed: {min: 50, max: 150},
-      scale: {start: 0.3, end: 0},
-      lifespan: 1000,
-      quantity: 2,
-      frequency: 50,
-      emitZone: {
-        type: "edge",
-        source: new Phaser.Geom.Rectangle(-100, -200, 200, 400),
-        quantity: 20,
+    const size = 200;
+    const height = 400;
+
+    const particles = this.add.particles(
+      relativeX,
+      relativeY,
+      BottleSortPuzzleAssetConf.image.starParticle,
+      {
+        speed: {min: 50, max: 150},
+        scale: {start: 0.3, end: 0}, // puoi aumentare start a 1.0 per PNG grande
+        lifespan: 1000,
+        quantity: 2,
+        frequency: 50,
+        emitZone: {
+          type: "random",
+          source: new Phaser.Geom.Rectangle(-size / 2, -height / 2, size, height), // area scalabile
+          quantity: 20,
+        },
       },
-    });
+    );
 
     // Aggiunge le particelle al container principale
     this.mainContainer.add(particles);
@@ -727,7 +793,7 @@ bottle.container.add(selectedImage);
   private checkWinCondition(): void {
     let completedBottles = 0;
 
-    console.log("checkWinCondition: 1");
+    //console.log("checkWinCondition: 1");
 
     this.bottles.forEach((bottle) => {
       if (bottle.objects.length === 0) {
@@ -735,7 +801,7 @@ bottle.container.add(selectedImage);
         return;
       }
 
-      console.log("checkWinCondition: 2");
+      //console.log("checkWinCondition: 2");
 
       if (bottle.objects.length === this.OBJECTS_PER_BOTTLE) {
         // Controlla se tutti gli oggetti sono dello stesso tipo
@@ -760,6 +826,8 @@ bottle.container.add(selectedImage);
   //* Scopo: Gestisce la vittoria del gioco
   private handleGameWin(): void {
     console.log("Gioco completato!");
+
+    this.isGameOver = true;
 
     // Delay per dare tempo alla bottiglia selezionata di tornare alla dimensione originale
     this.time.delayedCall(2000, () => {
@@ -833,14 +901,15 @@ bottle.container.add(selectedImage);
   //* Scopo: Metodo per aggiungere una bottiglia
   public addExtraBottle(): void {
     if (this.bottles.length >= 6) {
-      console.log("Numero massimo di bottiglie raggiunto");
-
+      //console.log("Numero massimo di bottiglie raggiunto");
       return;
     }
 
     // Crea la nuova bottiglia in posizione di partenza (sopra a destra)
-    const startX = 400; // Posizione di partenza a destra, relativa al container
-    const startY = -800; // Posizione di partenza in alto, relativa al container
+    const startX = -this.scale.width * 0.8; // Posizione di partenza x, relativa al container
+    const startY = this.scale.height * 0.7; // Posizione di partenza y, relativa al container
+    // const startX = this.gameScene.uiManager.iconHelp.x;
+    // const startY = this.gameScene.uiManager.iconHelp.y;
 
     const newBottle = this.createBottle(startX, startY, this.bottles.length);
 
@@ -861,10 +930,10 @@ bottle.container.add(selectedImage);
     bottle.background.on("pointerdown", () => {
       if (this.isAnimating || bottle.isCompleted || this.isTouchBottle) return;
       this.handleBottleClick(bottle);
-      console.log("Touch");
+      //console.log("Touch");
       this.isTouchBottle = true;
-      this.time.delayedCall(250, () => {
-        // tempo sicurezza 250 ms per non fare doppio click su una bottiglia e far finire prima l 'animazione della bottiglia e non causare bugs
+      this.time.delayedCall(350, () => {
+        // tempo sicurezza 350 ms per non fare doppio click su una bottiglia e far finire prima l 'animazione della bottiglia e non causare bugs
         this.isTouchBottle = false;
       });
     });
@@ -887,7 +956,7 @@ bottle.container.add(selectedImage);
   private reorganizeBottles(): void {
     const bottleWidth = 354;
     const bottleHeight = 632;
-    const spacingX = bottleWidth + 40; // tolleranza larghezza tra colonne di bottiglie
+    const spacingX = bottleWidth + this.spacingXBottle; // tolleranza larghezza tra colonne di bottiglie
     const spacingY = bottleHeight + 150; // tolleranza altezza tra file di bottiglie
 
     const maxCols = 3;
@@ -921,11 +990,7 @@ bottle.container.add(selectedImage);
       this.bookcaseContainer.add(shelf);
 
       // Salva riferimento alla mensola per poterla rimuovere dopo
-  
-
-(shelf as unknown as ShelfWithFlag).isShelf = true;
-
-
+      (shelf as ShelfWithFlag).isShelf = true;
 
       // Riposiziona le bottiglie di questa riga
       for (let col = 0; col < bottlesInThisRow; col++) {
@@ -971,14 +1036,14 @@ bottle.container.add(selectedImage);
   }
 
   //* Scopo: Metodo per rimuovere le mensole esistenti
- private clearShelves(): void {
-  this.bookcaseContainer.list.forEach((child) => {
-    const shelf = child as ShelfWithFlag;
-    if (shelf.isShelf) {
-      shelf.destroy();
-    }
-  });
-}
+  private clearShelves(): void {
+    this.bookcaseContainer.list.forEach((child:  ShelfWithFlag) => {
+      if (child.isShelf) {
+        child.destroy();
+      }
+    });
+  }
+
   //* Scopo: Configura l'interazione con le bottiglie e usa il metodo helper
   private setupInteraction(): void {
     this.bottles.forEach((bottle) => {
@@ -1045,5 +1110,151 @@ bottle.container.add(selectedImage);
     });
 
     spriteRight.play("animConfettiRight");
+  }
+
+  //* --- controllo giocate non piu possibili ---
+  //* Scopo: Gestisce la situazione di stallo
+  private handleNoMovesAvailable(): void {
+    if (!this.isGameOver) {
+      console.log("🚫 NESSUNA MOSSA POSSIBILE!");
+      this.gameScene.uiManager.startHelpHighlight();
+      //this.addExtraBottle();
+    }
+  }
+
+  //* Scopo: Controlla se ci sono ancora mosse utili possibili
+  private checkPossibleMoves(): boolean {
+    // Genera un hash dello stato attuale del gioco
+    const currentState = this.generateGameStateHash();
+
+    // Controlla ogni possibile combinazione di bottiglie
+    for (let i = 0; i < this.bottles.length; i++) {
+      for (let j = 0; j < this.bottles.length; j++) {
+        if (i !== j) {
+          const fromBottle = this.bottles[i];
+          const toBottle = this.bottles[j];
+          const moveCount = this.getValidMoveCount(fromBottle, toBottle);
+
+          if (moveCount > 0) {
+            // Simula la mossa e verifica se porta a un progresso reale
+            const newState = this.simulateMove(fromBottle, toBottle, moveCount);
+
+            if (this.isStateProgressive(currentState, newState)) {
+              return true; // Trovata almeno una mossa che porta progresso
+            }
+          }
+        }
+      }
+    }
+
+    return false; // Nessuna mossa utile possibile
+  }
+
+  //* Scopo: Genera un hash dello stato attuale del gioco
+  private generateGameStateHash(): string {
+    const state = this.bottles
+      .map((bottle) => {
+        const objects = bottle.objects.map((obj) => obj.type).join(",");
+
+        return `${bottle.index}:[${objects}]`;
+      })
+      .join("|");
+
+    return state;
+  }
+
+  //* Scopo: Simula una mossa e restituisce il nuovo stato
+  private simulateMove(fromBottle: Bottle, toBottle: Bottle, moveCount: number): string {
+    // Crea copie degli array di oggetti
+    const fromObjects = [...fromBottle.objects];
+    const toObjects = [...toBottle.objects];
+
+    // Simula la mossa
+    const movedObjects = fromObjects.splice(fromObjects.length - moveCount, moveCount);
+
+    toObjects.push(...movedObjects);
+
+    // Crea il nuovo stato
+    const newBottles = this.bottles.map((bottle) => {
+      if (bottle.index === fromBottle.index) {
+        return {...bottle, objects: fromObjects};
+      } else if (bottle.index === toBottle.index) {
+        return {...bottle, objects: toObjects};
+      }
+
+      return bottle;
+    });
+
+    const newState = newBottles
+      .map((bottle) => {
+        const objects = bottle.objects.map((obj) => obj.type).join(",");
+
+        return `${bottle.index}:[${objects}]`;
+      })
+      .join("|");
+
+    return newState;
+  }
+
+  //* Scopo: Verifica se il nuovo stato rappresenta un progresso
+  private isStateProgressive(currentState: string, newState: string): boolean {
+    // Calcola il "punteggio di progresso" per entrambi gli stati
+    const currentScore = this.calculateProgressScore(currentState);
+    const newScore = this.calculateProgressScore(newState);
+
+    return newScore > currentScore;
+  }
+
+  //* Scopo: Calcola un punteggio di progresso per uno stato
+  private calculateProgressScore(gameState: string): number {
+    let score = 0;
+    const bottles = gameState.split("|");
+
+    bottles.forEach((bottleState) => {
+      const objectsMatch = bottleState.match(/\[([^\]]*)\]/);
+
+      if (!objectsMatch || !objectsMatch[1]) return; // Bottiglia vuota
+
+      const objects = objectsMatch[1].split(",").map((n) => parseInt(n));
+
+      // Punti per bottiglie complete dello stesso tipo
+      if (objects.length === this.OBJECTS_PER_BOTTLE) {
+        const allSameType = objects.every((type) => type === objects[0]);
+
+        if (allSameType) {
+          score += 1000; // Bottiglia completata
+        }
+      }
+
+      // Punti per sequenze consecutive dello stesso tipo dall'alto
+      let consecutiveFromTop = 0;
+
+      if (objects.length > 0) {
+        const topType = objects[objects.length - 1];
+
+        for (let i = objects.length - 1; i >= 0; i--) {
+          if (objects[i] === topType) {
+            consecutiveFromTop++;
+          } else {
+            break;
+          }
+        }
+        // Più oggetti consecutivi = più punti
+        score += consecutiveFromTop * consecutiveFromTop * 10;
+      }
+
+      // Punti per raggruppamenti dello stesso tipo
+      const typeCounts: Record<number, number> = {};
+
+      objects.forEach((type) => {
+        typeCounts[type] = (typeCounts[type] || 0) + 1;
+      });
+
+      Object.values(typeCounts).forEach((count) => {
+        score += count * count; // Raggruppamenti più grandi = più punti
+      });
+    });
+
+    return score;
   }
 }

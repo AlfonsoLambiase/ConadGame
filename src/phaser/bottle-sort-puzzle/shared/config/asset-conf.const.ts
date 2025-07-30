@@ -21,19 +21,21 @@ export const BottleSortPuzzleAssetConf = {
   image: {
     // for timerManager
     iconSandClock: "iconSandClock",
-
+ 
     // for game
     backgroundGame: "backgroundGame",
     backgroundLogo: "backgroundLogo",
     backgroundScore: "backgroundScore",
     logo: "logo",
     iconHelp: "iconHelp",
+    iconHelpHighlight: "iconHelpHighlight",
     iconScore: "iconScore",
     iconLive: "iconLive",
     logoPhaser: "logoPhaser", //! Solo per test
     endWin: "endWin",
     endFailed: "endFailed",
-
+    endBackground: "endBackground",
+ 
     // for specific game
     bottleGlass: "bottleGlass",
     bottleGlassSelected: "bottleGlassSelected",
@@ -44,13 +46,14 @@ export const BottleSortPuzzleAssetConf = {
     product1: "product1",
     product2: "product2",
     product3: "product3",
-
+    starParticle: "starParticle",
+ 
     // for exitManager
     btnExitGame: "btnExitGame",
     btnConfirm: "btnConfirm",
     btnCancel: "btnCancel",
     popupExitGame: "popupExitGame",
-
+ 
     // for tutorial
     tutorialTastoAvanti: "tutorialTastoAvanti",
   },
@@ -86,7 +89,7 @@ export const BottleSortPuzzleAssetConf = {
       frameHeight: 253,
       key: "tutorialText03",
     },
-
+ 
     // for confetti - fine partita
     confetti_left: {
       frameWidth: 195,
@@ -98,7 +101,7 @@ export const BottleSortPuzzleAssetConf = {
       frameHeight: 177.5,
       key: "confetti_right",
     },
-
+ 
     // for starsEffect
     starsEffect: {
       // 20
@@ -106,10 +109,19 @@ export const BottleSortPuzzleAssetConf = {
       frameHeight: 184,
       key: "starsEffect",
     },
+ 
+    // for handIndicator
+    handIndicator: {
+      // 23
+      frameWidth: 254,
+      frameHeight: 176,
+      key: "handIndicator",
+    },
   },
   keyAnim: {
     // for starsEffect
     animStars: "animStars",
+    animHandIndicator: "animHandIndicator",
     // for tutorial
     animTutorialPlayer01: "animTutorialPlayer01",
     animTutorialPlayer02: "animTutorialPlayer02",
@@ -130,3 +142,4 @@ export const BottleSortPuzzleAssetConf = {
     timer: "timer",
   },
 };
+ 

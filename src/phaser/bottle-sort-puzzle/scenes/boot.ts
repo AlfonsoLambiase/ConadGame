@@ -45,6 +45,8 @@ export class Boot extends Phaser.Scene {
     console.log("Load boot.ts");
     this.#createBars();
 
+const loadStartTime = Date.now();
+
     // Set up progress bar update
     this.load.on(
       "progress",
@@ -64,7 +66,16 @@ export class Boot extends Phaser.Scene {
 
     // Set up loading complete callback
     this.load.on("complete", () => {
-      this.startGame();
+      const elapsed = Date.now() - loadStartTime;
+      const minDuration = 1000; // 1 secondo
+ 
+      if (elapsed < minDuration) {
+        setTimeout(() => {
+          this.startGame();
+        }, minDuration - elapsed);
+      } else {
+        this.startGame();
+      }
     });
 
     this.#loadAssets();
