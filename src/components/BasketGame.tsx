@@ -13,6 +13,7 @@ import { TimerManager } from "@/phaser/basket/scenes/timer-manager";
 import { BasketManager } from "@/phaser/basket/scenes/basket-manager";
 import { BasketAssetConf } from "@/phaser/basket/shared/config/asset-conf.const";
 import { GameDemo02Config } from "@/phaser/basket/config/basket-config";
+import { UIManager } from "@/phaser/basket/components/UIManager";
 
 // Qui definisci il basePath da env
 const basePath = process.env.NEXT_PUBLIC_GITHUB_PAGES === "true" ? "/conad_prova" : "";
@@ -29,13 +30,18 @@ export default function GameDemo02Game({
   const gameRef = useRef<HTMLDivElement>(null);
   const gameInstance = useRef<Phaser.Game | null>(null);
 
+  //! 2 png
+  // Stato iniziale con due background
   const [backgroundStyle, setBackgroundStyle] = useState<CSSProperties>({
-    backgroundImage: `url('${basePath}/games/basket/images/loadingBackground.jpg')`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
+    backgroundImage:
+      "url('/games/basket/images/loadingBackground_logo.png'), url('/games/basket/images/loadingBackground.png')",
+    backgroundSize: "100% auto, cover", // Prima immagine 150px, seconda copre tutto
+    backgroundPosition: "center, center", // Entrambe centrate
+    backgroundRepeat: "no-repeat, no-repeat",
     width: "100%",
     height: "100%",
   });
+ 
 
   useEffect(() => {
     if (!gameRef.current) return;
@@ -54,6 +60,7 @@ export default function GameDemo02Game({
     game.scene.add(BasketAssetConf.scene.timerManager, TimerManager);
     game.scene.add(BasketAssetConf.scene.basketManager, BasketManager);
     game.scene.add(BasketAssetConf.scene.exitManager, ExitManager);
+    game.scene.add(BasketAssetConf.scene.UIManager, UIManager);
     game.scene.add(BasketAssetConf.scene.outro, Outro);
 
     // LOGHI
