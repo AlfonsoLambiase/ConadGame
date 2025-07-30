@@ -14,7 +14,6 @@ type GridCell = {
 };
 
 
-
   interface BubbleWithEmitters extends Phaser.Physics.Arcade.Image {
   trailEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
   sparkleEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
@@ -1072,8 +1071,8 @@ export class BubbleShooterManager extends Phaser.Scene {
 
     if (!movingBubble.body) return;
 
-    const dx = movingBubble.x - (stationaryObject as Phaser.GameObjects.GameObject).x;
-    const dy = movingBubble.y - (stationaryObject as Phaser.GameObjects.GameObject).y;
+    const dx = movingBubble.x - (stationaryObject as Phaser.GameObjects.Image).x;
+    const dy = movingBubble.y - (stationaryObject as Phaser.GameObjects.Image).y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     if (distance > this.bubbleSize && stationaryObject !== this.topWall) return;
