@@ -5,6 +5,7 @@ export const BasketAssetConf = {
     game: "game",
     timerManager: "timerManager",
     exitManager: "exitManager",
+    UIManager: "UIManager",
     basketManager: "basketManager",
     outro: "outro",
   },
@@ -21,7 +22,7 @@ export const BasketAssetConf = {
   image: {
     // for timerManager
     iconSandClock: "iconSandClock",
-
+ 
     // for game
     backgroundGame: "backgroundGame",
     backgroundLogo: "backgroundLogo",
@@ -33,19 +34,29 @@ export const BasketAssetConf = {
     logoPhaser: "logoPhaser", //! Solo per test
     endWin: "endWin",
     endFailed: "endFailed",
-
+    endBackground: "endBackground",
+ 
     // for specific game
     basket: "basket",
     bonus: "bonus",
+    obj0: "obj0",
     obj1: "obj1",
+    obj2: "obj2",
+    obj3: "obj3",
+    obj4: "obj4",
+    obj5: "obj5",
+    obj6: "obj6",
+    obj7: "obj7",
+    obj8: "obj8",
+    obj9: "obj9",
     shadowObj: "shadowObj",
-
+ 
     // for exitManager
     btnExitGame: "btnExitGame",
     btnConfirm: "btnConfirm",
     btnCancel: "btnCancel",
     popupExitGame: "popupExitGame",
-
+ 
     // for tutorial
     tutorialTastoAvanti: "tutorialTastoAvanti",
   },
@@ -81,7 +92,7 @@ export const BasketAssetConf = {
       frameHeight: 253,
       key: "tutorialText03",
     },
-
+ 
     // for confetti - fine partita
     confetti_left: {
       frameWidth: 195,
@@ -93,7 +104,7 @@ export const BasketAssetConf = {
       frameHeight: 177.5,
       key: "confetti_right",
     },
-
+ 
     // for starsEffect
     starsEffect: {
       // 20
@@ -101,10 +112,62 @@ export const BasketAssetConf = {
       frameHeight: 184,
       key: "starsEffect",
     },
+ 
+    //! Nuovi da completare
+    // for animBonus
+    animBonus: {
+      // 21
+      frameWidth: 480,
+      frameHeight: 224,
+      key: "animBonus",
+    },
+    // for animCanestroDoppio
+    animCanestroDoppio_1di2: {
+      // 15
+      frameWidth: 644,
+      frameHeight: 380,
+      key: "animCanestroDoppio_1di2",
+    },
+    animCanestroDoppio_2di2: {
+      // 6
+      frameWidth: 644,
+      frameHeight: 380,
+      key: "animCanestroDoppio_2di2",
+    },
+    // for animOccasionePersa
+    animOccasionePersa_1di3: {
+      // 10
+      frameWidth: 736,
+      frameHeight: 380,
+      key: "animOccasionePersa_1di3",
+    },
+    animOccasionePersa_2di3: {
+      // 10
+      frameWidth: 736,
+      frameHeight: 380,
+      key: "animOccasionePersa_2di3",
+    },
+    animOccasionePersa_3di3: {
+      // 1
+      frameWidth: 736,
+      frameHeight: 380,
+      key: "animOccasionePersa_3di3",
+    },
+    // for sparklingStars
+    sparklingStars: {
+      // 18
+      frameWidth: 128,
+      frameHeight: 128,
+      key: "sparklingStars",
+    },
   },
   keyAnim: {
     // for starsEffect
     animStars: "animStars",
+    sparklingStars: "sparklingStars",
+    animBonus: "animBonus",
+    animOccasionePersa: "animOccasionePersa",
+    animCanestroDoppio: "animCanestroDoppio",
     // for tutorial
     animTutorialPlayer01: "animTutorialPlayer01",
     animTutorialPlayer02: "animTutorialPlayer02",
@@ -125,3 +188,4 @@ export const BasketAssetConf = {
     timer: "timer",
   },
 };
+ 
