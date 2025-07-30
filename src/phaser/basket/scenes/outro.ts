@@ -15,10 +15,13 @@ export class Outro extends Phaser.Scene {
       this.imageKey = `end${resultStatus}`;
     }
  
-    this.time.delayedCall(
+     this.time.delayedCall(
       3000,
       () => {
-        EventBus.emit(PhaserEvents.END_GAME);
+        // redirect a root della app
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
       },
       [],
       this,

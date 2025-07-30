@@ -13,8 +13,8 @@ export const GameDemo02Config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: "arcade",
     arcade: {
-      gravity: {y: 1200, x: 0},
-      debug: true,
+      gravity: {y: 2400, x: 0},
+      debug: false,
     },
   },
   transparent: true,
