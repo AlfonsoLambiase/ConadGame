@@ -46,50 +46,50 @@ export class Game extends Phaser.Scene {
     this.registry.set("gameSnowmanInstance", this);
   }
 
-  create() {
+ create() {
     console.log("Start Game");
-
+ 
     this.setGlobalScale();
-
+ 
     // Inizializza il BubbleShooterManager
     this.initializeBubbleShooterManager();
-
+ 
     this.starsEffectManager = new StarsEffectManager(this);
-
+ 
     this.uiManager = new UIManager(this);
     this.uiManager.setGameScene(this);
     this.uiManager.createUI();
-
+ 
     this.audioManager = new AudioManager(this); //* è una semplice classe helper. Si inizializza in questo modo.
     this.audioManager.loadAudios();
     //this.audioManager.playBackgroundMusic(); // ! Attivare musica
-
+ 
     if (!this.sys.game.device.os.desktop) {
       this.scene.launch(assetConf.scene.mobileControlsScene, {gameScene: this});
       this.scene.bringToTop(assetConf.scene.mobileControlsScene);
     }
-
+ 
     const exitManager = this.scene.get(assetConf.scene.exitManager) as ExitManager;
-
+ 
     exitManager.setGameScene(this);
     this.exitButton = exitManager.createExitButton(this, this.theme);
     this.scene.bringToTop(assetConf.scene.exitManager);
-
+ 
     // this.scene.launch(assetConf.scene.timerManager); //* è una estensione della classe Phaser.Scene. Si inizializza in questo modo.
     // this.timerManager = this.scene.get(assetConf.scene.timerManager) as TimerManager;
     // this.timerManager.setGameScene(this);
     // this.timerManager.startTimer();
-
+ 
     // //* Aggiunto mobile touch
     // const width = Number(this.sys.game.config.width);
     // const height = Number(this.sys.game.config.height);
-
+ 
     // if (!this.sys.game.device.os.desktop) {
     //   this.isDownPressed = false;
     //   this.isUpPressed = false;
     //   this.isShootPressed = false;
     //   addScreenZones(this, height, width);
-    // }   
+    // }
   }
 
   private initializeBubbleShooterManager() {
