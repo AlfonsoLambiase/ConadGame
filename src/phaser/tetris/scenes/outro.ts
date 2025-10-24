@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import {TetrisAssetConf} from "../shared/config/asset-conf.const";
 
@@ -16,11 +17,10 @@ export class Outro extends Phaser.Scene {
       this.imageKey = `end${resultStatus}`;
     }
 
-     this.time.delayedCall(
+    this.time.delayedCall(
       3000,
       () => {
-        // redirect a root della app
-        if (typeof window !== "undefined") {
+         if (typeof window !== "undefined") {
           window.location.href = "/";
         }
       },
@@ -36,7 +36,7 @@ export class Outro extends Phaser.Scene {
     const {width, height} = this.scale;
 
     // Sfondo centrato e deformato per coprire tutto
-      this.add
+    const background = this.add
       .image(width / 2, height / 2, assetConf.image.endBackground)
       .setOrigin(0.5, 0.5)
       .setDisplaySize(width, height);

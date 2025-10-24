@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {TetrisAssetConf} from "../shared/config/asset-conf.const";
+
 import {Game} from "./game";
+
+import {EventBus} from "@/phaser/EventBus";
+import {PhaserEvents} from "@/lib/phaser-events";
 
 const assetConf = TetrisAssetConf; //* Generalizzazione
 
@@ -87,13 +91,14 @@ export class ExitManager extends Phaser.Scene {
       .setInteractive({useHandCursor: true});
 
     btnConfirm.on("pointerdown", () => {
-          const game = this.scene.get(assetConf.scene.game) as Game;
-    
-          if (game.theme) game.theme.stop();
-          
-          // Qui invece di emettere l’evento EXIT_GAME, fai il redirect diretto
+      const game = this.scene.get(assetConf.scene.game) as Game;
+
+      if (game.theme) game.theme.stop();
+        //EventBus.emit(PhaserEvents.EXIT_GAME);
+      if (typeof window !== "undefined") {
           window.location.href = "/";
-        });
+        }
+    });
 
     // Add elements to the popup container
     this.popupContainer.add([popupExitGame, btnCancel, btnConfirm]);
@@ -117,18 +122,17 @@ export class ExitManager extends Phaser.Scene {
       .setDepth(100)
       .setScale(this.gameScene.setDynamicValueBasedOnScale(0.35, 1.0));
 
-     exitButton.on("pointerdown", () => {
-         if (isTesting) {
-           if (theme) theme.stop();
-           // Anche qui redirect diretto se sei in test
-           window.location.href = "/";
-         } else {
-           scene.scene.launch(assetConf.scene.exitManager);
-           const exitManager = scene.scene.get(
-             assetConf.scene.exitManager,
-           ) as ExitManager;
-         }
-       });
+    exitButton.on("pointerdown", () => {
+      if (isTesting) {
+        if (theme) theme.stop();
+           if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
+      } else {
+        scene.scene.launch(assetConf.scene.exitManager);
+        const exitManager = scene.scene.get(assetConf.scene.exitManager) as ExitManager;
+      }
+    });
 
     return exitButton;
   }

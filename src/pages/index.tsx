@@ -4,13 +4,14 @@ const giochi = [
   { title: "Bubble-Shooter", path: "/giochi/bubble-shooter" },
   { title: "Basket", path: "/giochi/basket" },
   { title: "Bottle-Puzzle", path: "/giochi/bottle" },
-  { title: "Tetris", path: "/giochi/tetris" }
+  { title: "Tetris", path: "/giochi/tetris" },
+  { title: "Spara Neve", path: "/giochi/spara-neve" }
 ];
 
 export default function Home() {
   return (
     <div className="min-h-screen p-10 flex flex-col items-center gap-10 bg-gray-100">
-      <h1 className="text-3xl font-bold text-black">Scegli un gioco</h1>
+      <h1 className="text-3xl font-bold text-black">Prova un gioco</h1>
       <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {giochi.map((gioco) => (
           <li

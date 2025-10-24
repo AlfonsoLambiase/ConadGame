@@ -1,3 +1,4 @@
+
 import * as Phaser from "phaser";
 
 import {Game} from "../scenes/game";
