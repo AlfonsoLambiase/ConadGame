@@ -4,24 +4,20 @@ import * as Phaser from "phaser";
  
 import {EventBus} from "@/phaser/EventBus";
 import {PhaserEvents} from "@/lib/phaser-events";
-
-import {Boot} from "@/phaser/sparaneve/scenes/boot"; //*
-import {Game} from "@/phaser/sparaneve/scenes/game"; //*
-import {Outro} from "@/phaser/sparaneve/scenes/outro"; //*
-import {Tutorial} from "@/phaser/sparaneve/scenes/tutorial"; //*
-import {ExitManager} from "@/phaser/sparaneve/scenes/exit-manager"; //*
-import {TimerManager} from "@/phaser/sparaneve/scenes/timer-manager"; //*
-import {SparaNeveAssetConf} from "@/phaser/sparaneve/shared/config/asset-conf.const"; //*
-import {GameSparaNeveManager} from "@/phaser/sparaneve/scenes/sparaneve-manager"; //* //*
-import {GameSparaNeveConfig} from "@/phaser/sparaneve/config/sparaneve-config"; //* //*
-import MainMenu from "@/phaser/sparaneve/scenes/main-menu";
-import MainGame from "@/phaser/sparaneve/scenes/main-game";
-import MobileControlsScene from "@/phaser/sparaneve/shared/utils/mobile-controls";
+import {Boot} from "@/phaser/raccogli-note/scenes/boot"; //*
+import {Game} from "@/phaser/raccogli-note/scenes/game"; //*
+import {Outro} from "@/phaser/raccogli-note/scenes/outro"; //*
+import {Tutorial} from "@/phaser/raccogli-note/scenes/tutorial"; //*
+import {ExitManager} from "@/phaser/raccogli-note/scenes/exit-manager"; //*
+import {TimerManager} from "@/phaser/raccogli-note/scenes/timer-manager"; //*
+import {RaccogliNoteAssetConf} from "@/phaser/raccogli-note/shared/config/asset-conf.const"; //*
+import {RaccogliNoteManager} from "@/phaser/raccogli-note/scenes/raccogli-note-manager"; //* //*
+import {RaccogliNoteConfig} from "@/phaser/raccogli-note/config/raccogli-note-config"; //* //*
  
-const assetConf = SparaNeveAssetConf; //* Generalizzazione
-const gameName = "sparaneve"; //* Generalizzazione
+const assetConf = RaccogliNoteAssetConf; //* Generalizzazione
+const gameName = "raccogli-note"; //* Generalizzazione
  
-export default function SparaNeveGame({
+export default function RaccogliNoteGame({
   isTesting,
   setLevelComplete,
   setExitGame,
@@ -30,14 +26,14 @@ export default function SparaNeveGame({
   setLevelComplete: () => void;
   setExitGame: () => void;
 }) {
-
+//   const gameContext = useGame();
   const gameRef = useRef<HTMLDivElement>(null);
   const gameInstance = useRef<Phaser.Game | null>(null);
  
   // Stato iniziale con due background
   const [backgroundStyle, setBackgroundStyle] = useState<CSSProperties>({
     backgroundImage: `url('/games/${gameName}/images/loadingBackground_logo.png'), url('/games/${gameName}/images/loadingBackground.png')`,
-    backgroundSize: "contain, cover", // Prima immagine 150px, seconda copre tutto
+    backgroundSize: "100% auto, cover", // Prima immagine 150px, seconda copre tutto
     backgroundPosition: "center, center",
     backgroundRepeat: "no-repeat, no-repeat",
     width: "100%",
@@ -48,7 +44,7 @@ export default function SparaNeveGame({
     if (!gameRef.current) return;
  
     const game = new Phaser.Game({
-      ...GameSparaNeveConfig, //*
+      ...RaccogliNoteConfig, //*
       parent: gameRef.current,
     });
  
@@ -57,28 +53,22 @@ export default function SparaNeveGame({
     // Registriamo le scene manualmente
     game.scene.add(assetConf.scene.boot, Boot);
     game.scene.add(assetConf.scene.game, Game);
-    game.scene.add(assetConf.scene.mainMenu, MainMenu);
-    game.scene.add(assetConf.scene.mainGame, MainGame);
     game.scene.add(assetConf.scene.tutorial, Tutorial);
     game.scene.add(assetConf.scene.timerManager, TimerManager);
-    game.scene.add(assetConf.scene.sparaNeveManager, GameSparaNeveManager); //* //*
+    game.scene.add(assetConf.scene.raccogliNoteManager, RaccogliNoteManager); //* //*
     game.scene.add(assetConf.scene.exitManager, ExitManager);
     game.scene.add(assetConf.scene.outro, Outro);
-    game.scene.add(assetConf.scene.mobileControlsScene, MobileControlsScene);
  
     //! Sono parametri da personalizzare
     //* NOTA: se non si vuole mettere nessun logo quando è nobrand scirvere: empty
-    let sponsorLogo = "empty";
-    //let sponsorLogo = "/images/loghi/logo_verso_natura.png";
-    let backgroundGame = `/games/${gameName}/images/backgroundGame_0.png`;
-    sponsorLogo = "empty";
-    
-  backgroundGame = `/games/${gameName}/images/backgroundGame_1.png`;
+    let sponsorLogo = "/images/loghi/logo_verso_natura.png";
+ 
+   sponsorLogo = "/images/loghi/logo_verso_natura.png";
+ 
     game.scene.start(assetConf.scene.boot, {
       //! Inserire qui i parametri desiderati
       sponsorLogo,
       isTesting,
-      backgroundGame,
     });
  
     const handleEndGame = () => {
@@ -125,3 +115,4 @@ export default function SparaNeveGame({
     </div>
   );
 }
+ 
