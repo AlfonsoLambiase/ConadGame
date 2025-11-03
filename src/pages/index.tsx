@@ -5,7 +5,7 @@ const giochi = [
   { title: "Basket", path: "/giochi/basket" },
   { title: "Bottle-Puzzle", path: "/giochi/bottle" },
   { title: "Tetris", path: "/giochi/tetris" },
-  { title: "Spara Neve", path: "/giochi/sparaneve" },
+  { title: "Spara Neve", path: "/giochi/spara-neve" },
   { title: "Raccogli Note", path: "/giochi/raccogli-note" },
 ];
 
