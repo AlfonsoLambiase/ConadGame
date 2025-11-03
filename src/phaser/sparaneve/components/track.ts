@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import * as Phaser from "phaser";
 
 import MainGame from "../scenes/main-game";

@@ -634,58 +634,57 @@ export class RaccogliNoteManager extends Phaser.Scene {
   }
 
   //* Scopo: Gestisce la collisione tra player e nota
-  private collectNote(
-    object1:
-      | Phaser.Types.Physics.Arcade.GameObjectWithBody
-      | Phaser.Tilemaps.Tile
-      | Phaser.Physics.Arcade.Body,
-    object2:
-      | Phaser.Types.Physics.Arcade.GameObjectWithBody
-      | Phaser.Tilemaps.Tile
-      | Phaser.Physics.Arcade.Body,
-  ): void {
-    const noteSpriteObj = object2 as Phaser.Physics.Arcade.Sprite;
-    const noteIndex = this.notes.findIndex((n) => n.sprite === noteSpriteObj);
+  //* Scopo: Gestisce la collisione tra player e nota
+private collectNote(
+  object1:
+    | Phaser.Types.Physics.Arcade.GameObjectWithBody
+    | Phaser.Physics.Arcade.Body
+    | Phaser.Physics.Arcade.StaticBody
+    | Phaser.Tilemaps.Tile,
+  object2:
+    | Phaser.Types.Physics.Arcade.GameObjectWithBody
+    | Phaser.Physics.Arcade.Body
+    | Phaser.Physics.Arcade.StaticBody
+    | Phaser.Tilemaps.Tile,
+): void {
+  const noteSpriteObj = object2 as Phaser.Physics.Arcade.Sprite;
+  const noteIndex = this.notes.findIndex((n) => n.sprite === noteSpriteObj);
 
-    if (noteIndex === -1) return;
+  if (noteIndex === -1) return;
 
-    const note = this.notes[noteIndex];
-    const noteX = noteSpriteObj.x;
-    const noteY = noteSpriteObj.y;
+  const note = this.notes[noteIndex];
+  const noteX = noteSpriteObj.x;
+  const noteY = noteSpriteObj.y;
 
-    note.sprite.destroy();
-    this.notesGroup.remove(note.sprite, true);
-    this.notes.splice(noteIndex, 1);
+  note.sprite.destroy();
+  this.notesGroup.remove(note.sprite, true);
+  this.notes.splice(noteIndex, 1);
 
-    if (note.isGood) {
-      // Nota BUONA presa
-      this.consecutiveGoodNotes++;
-      this.gameScene.uiManager.updateScore(1);
-      this.score += 10;
-      this.playNoteSound(note.type);
-      this.showFeedback(noteX, noteY, "+10", 0x00ff00);
+  if (note.isGood) {
+    // Nota BUONA presa
+    this.consecutiveGoodNotes++;
+    this.gameScene.uiManager.updateScore(1);
+    this.score += 10;
+    this.playNoteSound(note.type);
+    this.showFeedback(noteX, noteY, "+10", 0x00ff00);
+    this.updateScoreBar();
 
-      this.updateScoreBar();
-
-      // Controlla vittoria
-      if (this.consecutiveGoodNotes >= 30) {
-        this.isGameOver = true;
-        this.checkGameOver();
-
-        return;
-      }
-    } else {
-      // Nota CATTIVA presa
-      this.consecutiveGoodNotes = Math.max(0, this.consecutiveGoodNotes - 1); // Non scendere sotto 0
-      this.gameScene.uiManager.updateScore(-1);
-      this.score = Math.max(0, this.score - 10);
-      this.showFeedback(noteX, noteY, "-10", 0xff0000);
-      this.playErrorSound();
-      this.updateScoreBar();
+    if (this.consecutiveGoodNotes >= 30) {
+      this.isGameOver = true;
+      this.checkGameOver();
+      return;
     }
-
-    //this.updateScoreBar();
+  } else {
+    // Nota CATTIVA presa
+    this.consecutiveGoodNotes = Math.max(0, this.consecutiveGoodNotes - 1);
+    this.gameScene.uiManager.updateScore(-1);
+    this.score = Math.max(0, this.score - 10);
+    this.showFeedback(noteX, noteY, "-10", 0xff0000);
+    this.playErrorSound();
+    this.updateScoreBar();
   }
+}
+
 
   //* Scopo: Rimuove le note che sono uscite dallo schermo
   private cleanupNotes(): void {

@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {SparaNeveAssetConf} from "../shared/config/asset-conf.const";
 
