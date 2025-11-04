@@ -1,4 +1,5 @@
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console */
 import Phaser from "phaser";
 
 import {AudioManager} from "../components/audioManager";
@@ -183,7 +184,7 @@ export class RaccogliNoteManager extends Phaser.Scene {
   private currentSequenceIndex: number = 0;
 
   // Input
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private btnLeft!: Phaser.GameObjects.Image;
   private btnRight!: Phaser.GameObjects.Image;
 
@@ -200,8 +201,8 @@ export class RaccogliNoteManager extends Phaser.Scene {
 
   // Aggiungi queste variabili private nella classe
   private isPaused: boolean = false;
-  private keyPause!: Phaser.Input.Keyboard.Key;
-  private keyResume!: Phaser.Input.Keyboard.Key;
+  private keyPause?: Phaser.Input.Keyboard.Key;
+  private keyResume?: Phaser.Input.Keyboard.Key;
 
   constructor() {
     super({key: assetConf.scene.raccogliNoteManager});
@@ -216,6 +217,21 @@ export class RaccogliNoteManager extends Phaser.Scene {
 
   //* Scopo: Crea tutti gli elementi della scena all'avvio
   create() {
+    //! CANCELLARE
+    // Ottieni le dimensioni del gioco
+    const {width, height} = this.scale;
+
+    // Crea il testo
+    const testo = this.add.text(width / 2, 350, "Versione di test 01", {
+      fontSize: "40px",
+      color: "#ffffffff",
+      fontFamily: "Arial",
+    });
+
+    // Centra il testo orizzontalmente
+    testo.setOrigin(0.5, 0.5);
+    //! Fino qui
+
     console.log("Start Game Raccogli Note");
     this.computeLayoutDimensions();
 
@@ -293,8 +309,12 @@ export class RaccogliNoteManager extends Phaser.Scene {
     // Inizializza il player
     this.createPlayer();
 
-    // Setup input tastiera
-    this.cursors = this.input.keyboard!.createCursorKeys();
+    // Setup input tastiera (solo se disponibile, per desktop)
+    if (this.input.keyboard) {
+      this.cursors = this.input.keyboard.createCursorKeys();
+      this.keyPause = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+      this.keyResume = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    }
 
     // Setup pulsanti touch
     this.createTouchButtons();
@@ -312,22 +332,20 @@ export class RaccogliNoteManager extends Phaser.Scene {
       this.canShoot = true;
       this.isGameOver = false;
     });
-
-    // --- Nella create(), subito dopo setup cursors ---
-    this.keyPause = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P);
-    this.keyResume = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.R);
   }
 
   //* Scopo: Aggiorna la logica del gioco ad ogni frame
   update() {
     if (this.isGameOver) return;
 
-    // Controllo tasti pausa/resume
-    if (Phaser.Input.Keyboard.JustDown(this.keyPause)) {
-      this.pauseNotes();
-    }
-    if (Phaser.Input.Keyboard.JustDown(this.keyResume)) {
-      this.resumeNotes();
+    // Controllo tasti pausa/resume (solo se tastiera disponibile)
+    if (this.input.keyboard && this.keyPause && this.keyResume) {
+      if (Phaser.Input.Keyboard.JustDown(this.keyPause)) {
+        this.pauseNotes();
+      }
+      if (Phaser.Input.Keyboard.JustDown(this.keyResume)) {
+        this.resumeNotes();
+      }
     }
 
     // Movimento del player solo se non in pausa
@@ -460,12 +478,17 @@ export class RaccogliNoteManager extends Phaser.Scene {
 
   //* Scopo: Gestisce il movimento del player tramite tastiera e touch
   private handlePlayerMovement(): void {
-    if (!this.player || !this.cursors) return;
+    if (!this.player) return;
 
-    // Movimento con tastiera
-    if (this.cursors.left.isDown || this.btnLeft.getData("isPressed")) {
+    const leftPressed =
+      (this.cursors && this.cursors.left.isDown) || this.btnLeft.getData("isPressed");
+    const rightPressed =
+      (this.cursors && this.cursors.right.isDown) || this.btnRight.getData("isPressed");
+
+    // Movimento con tastiera o touch
+    if (leftPressed) {
       this.player.setVelocityX(-this.playerSpeed);
-    } else if (this.cursors.right.isDown || this.btnRight.getData("isPressed")) {
+    } else if (rightPressed) {
       this.player.setVelocityX(this.playerSpeed);
     } else {
       this.player.setVelocityX(0);
@@ -634,57 +657,56 @@ export class RaccogliNoteManager extends Phaser.Scene {
   }
 
   //* Scopo: Gestisce la collisione tra player e nota
-  //* Scopo: Gestisce la collisione tra player e nota
-private collectNote(
-  object1:
-    | Phaser.Types.Physics.Arcade.GameObjectWithBody
-    | Phaser.Physics.Arcade.Body
-    | Phaser.Physics.Arcade.StaticBody
-    | Phaser.Tilemaps.Tile,
-  object2:
-    | Phaser.Types.Physics.Arcade.GameObjectWithBody
-    | Phaser.Physics.Arcade.Body
-    | Phaser.Physics.Arcade.StaticBody
-    | Phaser.Tilemaps.Tile,
-): void {
-  const noteSpriteObj = object2 as Phaser.Physics.Arcade.Sprite;
-  const noteIndex = this.notes.findIndex((n) => n.sprite === noteSpriteObj);
+  private collectNote(
+    object1:
+      | Phaser.Types.Physics.Arcade.GameObjectWithBody
+      | Phaser.Tilemaps.Tile
+      | Phaser.Physics.Arcade.Body,
+    object2:
+      | Phaser.Types.Physics.Arcade.GameObjectWithBody
+      | Phaser.Tilemaps.Tile
+      | Phaser.Physics.Arcade.Body,
+  ): void {
+    const noteSpriteObj = object2 as Phaser.Physics.Arcade.Sprite;
+    const noteIndex = this.notes.findIndex((n) => n.sprite === noteSpriteObj);
 
-  if (noteIndex === -1) return;
+    if (noteIndex === -1) return;
 
-  const note = this.notes[noteIndex];
-  const noteX = noteSpriteObj.x;
-  const noteY = noteSpriteObj.y;
+    const note = this.notes[noteIndex];
+    const noteX = noteSpriteObj.x;
+    const noteY = noteSpriteObj.y;
 
-  note.sprite.destroy();
-  this.notesGroup.remove(note.sprite, true);
-  this.notes.splice(noteIndex, 1);
+    note.sprite.destroy();
+    this.notesGroup.remove(note.sprite, true);
+    this.notes.splice(noteIndex, 1);
 
-  if (note.isGood) {
-    // Nota BUONA presa
-    this.consecutiveGoodNotes++;
-    this.gameScene.uiManager.updateScore(1);
-    this.score += 10;
-    this.playNoteSound(note.type);
-    this.showFeedback(noteX, noteY, "+10", 0x00ff00);
-    this.updateScoreBar();
+    if (note.isGood) {
+      // Nota BUONA presa
+      this.consecutiveGoodNotes++;
+      this.gameScene.uiManager.updateScore(1);
+      this.score += 10;
+      this.playNoteSound(note.type);
+      this.showFeedback(noteX, noteY, "+10", 0x00ff00);
 
-    if (this.consecutiveGoodNotes >= 30) {
-      this.isGameOver = true;
-      this.checkGameOver();
-      return;
+      this.updateScoreBar();
+
+      // Controlla vittoria
+      if (this.consecutiveGoodNotes >= 30) {
+        this.isGameOver = true;
+        this.checkGameOver();
+
+        return;
+      }
+    } else {
+      // Nota CATTIVA presa
+      this.consecutiveGoodNotes = Math.max(0, this.consecutiveGoodNotes - 1); // Non scendere sotto 0
+      this.gameScene.uiManager.updateScore(-1);
+      this.score = Math.max(0, this.score - 10);
+      this.showFeedback(noteX, noteY, "-10", 0xff0000);
+      this.playErrorSound();
+      this.updateScoreBar();
     }
-  } else {
-    // Nota CATTIVA presa
-    this.consecutiveGoodNotes = Math.max(0, this.consecutiveGoodNotes - 1);
-    this.gameScene.uiManager.updateScore(-1);
-    this.score = Math.max(0, this.score - 10);
-    this.showFeedback(noteX, noteY, "-10", 0xff0000);
-    this.playErrorSound();
-    this.updateScoreBar();
   }
-}
-
 
   //* Scopo: Rimuove le note che sono uscite dallo schermo
   private cleanupNotes(): void {

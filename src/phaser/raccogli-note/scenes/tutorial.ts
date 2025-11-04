@@ -1,4 +1,4 @@
-
+/* eslint-disable no-console */
 import {RaccogliNoteAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = RaccogliNoteAssetConf; //* Generalizzazione
@@ -39,6 +39,21 @@ export class Tutorial extends Phaser.Scene {
 
     this.addButton(normalSizeButton, reduceSizeButton);
     this.startAnimation(normalSizeButton, reduceSizeButton);
+
+    //! CANCELLARE
+    // Ottieni le dimensioni del gioco
+    const {width, height} = this.scale;
+
+    // Crea il testo
+    const testo = this.add.text(width / 2, 150, "Versione di test 01", {
+      fontSize: "40px",
+      color: "#ffffffff",
+      fontFamily: "Arial",
+    });
+
+    // Centra il testo orizzontalmente
+    testo.setOrigin(0.5, 0.5);
+    //! Fino qui
   }
 
   addRoadAndBackgroundRoad(): void {
