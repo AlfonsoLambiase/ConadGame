@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import {RaccogliNoteAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = RaccogliNoteAssetConf; //* Generalizzazione
@@ -42,7 +42,7 @@ export class Tutorial extends Phaser.Scene {
 
     //! CANCELLARE
     // Ottieni le dimensioni del gioco
-    const {width, height} = this.scale;
+    const {width} = this.scale;
 
     // Crea il testo
     const testo = this.add.text(width / 2, 150, "Versione di test 01", {

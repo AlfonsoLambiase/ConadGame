@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
+
 import Phaser from "phaser";
 
 import {AudioManager} from "../components/audioManager";
@@ -219,7 +218,7 @@ export class RaccogliNoteManager extends Phaser.Scene {
   create() {
     //! CANCELLARE
     // Ottieni le dimensioni del gioco
-    const {width, height} = this.scale;
+    const {width} = this.scale;
 
     // Crea il testo
     const testo = this.add.text(width / 2, 350, "Versione di test 01", {
