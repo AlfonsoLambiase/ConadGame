@@ -656,19 +656,15 @@ export class RaccogliNoteManager extends Phaser.Scene {
   }
 
   //* Scopo: Gestisce la collisione tra player e nota
-  private collectNote(
-    object1:
-      | Phaser.Types.Physics.Arcade.GameObjectWithBody
-      | Phaser.Tilemaps.Tile
-      | Phaser.Physics.Arcade.Body,
-    object2:
-      | Phaser.Types.Physics.Arcade.GameObjectWithBody
-      | Phaser.Tilemaps.Tile
-      | Phaser.Physics.Arcade.Body,
-  ): void {
+ private collectNote: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback =
+  (object1, object2) => {
+    // object2 può essere Body | StaticBody | GameObjectWithBody | Tile
     const noteSpriteObj = object2 as Phaser.Physics.Arcade.Sprite;
-    const noteIndex = this.notes.findIndex((n) => n.sprite === noteSpriteObj);
 
+    // se vuoi essere più sicuro, verifica prima:
+    if (!('x' in noteSpriteObj && 'y' in noteSpriteObj)) return;
+
+    const noteIndex = this.notes.findIndex((n) => n.sprite === noteSpriteObj);
     if (noteIndex === -1) return;
 
     const note = this.notes[noteIndex];
@@ -680,32 +676,27 @@ export class RaccogliNoteManager extends Phaser.Scene {
     this.notes.splice(noteIndex, 1);
 
     if (note.isGood) {
-      // Nota BUONA presa
       this.consecutiveGoodNotes++;
       this.gameScene.uiManager.updateScore(1);
       this.score += 10;
       this.playNoteSound(note.type);
       this.showFeedback(noteX, noteY, "+10", 0x00ff00);
-
       this.updateScoreBar();
-
-      // Controlla vittoria
       if (this.consecutiveGoodNotes >= 30) {
         this.isGameOver = true;
         this.checkGameOver();
-
         return;
       }
     } else {
-      // Nota CATTIVA presa
-      this.consecutiveGoodNotes = Math.max(0, this.consecutiveGoodNotes - 1); // Non scendere sotto 0
+      this.consecutiveGoodNotes = Math.max(0, this.consecutiveGoodNotes - 1);
       this.gameScene.uiManager.updateScore(-1);
       this.score = Math.max(0, this.score - 10);
       this.showFeedback(noteX, noteY, "-10", 0xff0000);
       this.playErrorSound();
       this.updateScoreBar();
     }
-  }
+  };
+
 
   //* Scopo: Rimuove le note che sono uscite dallo schermo
   private cleanupNotes(): void {
