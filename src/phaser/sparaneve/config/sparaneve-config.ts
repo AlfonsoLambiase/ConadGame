@@ -1,29 +1,29 @@
-export const GameSparaNeveConfig: Phaser.Types.Core.GameConfig = {
-  //type: Phaser.CANVAS,
-  type: Phaser.AUTO, // modificato per lo shader "snow" perche non funziona in canvas, creare un immagine fissa
-  width: 1920,
-  height: 1080,
-  parent: "game-container",
-  autoRound: false,
-  scale: {
-    mode: Phaser.Scale.ENVELOP, // Fit the game to the screen
-    autoCenter: Phaser.Scale.CENTER_BOTH, // Center the game on the screen
-    height: window.innerHeight * window.devicePixelRatio,
-    width: window.innerWidth * window.devicePixelRatio,
-  },
-  physics: {
-    default: "arcade",
-    arcade: {
-      gravity: {y: 0, x: 0},
-      debug: false,
-    },
-  },
-  transparent: true,
-  input: {
-    activePointers: 3, // Enable multitouch
-  },
-  scene: [],
-};
+// export const GameSparaNeveConfig: Phaser.Types.Core.GameConfig = {
+//   //type: Phaser.CANVAS,
+//   type: Phaser.AUTO, // modificato per lo shader "snow" perche non funziona in canvas, creare un immagine fissa
+//   width: 1920,
+//   height: 1080,
+//   parent: "game-container",
+//   autoRound: false,
+//   scale: {
+//     mode: Phaser.Scale.ENVELOP, // Fit the game to the screen
+//     autoCenter: Phaser.Scale.CENTER_BOTH, // Center the game on the screen
+//     height: window.innerHeight * window.devicePixelRatio,
+//     width: window.innerWidth * window.devicePixelRatio,
+//   },
+//   physics: {
+//     default: "arcade",
+//     arcade: {
+//       gravity: {y: 0, x: 0},
+//       debug: false,
+//     },
+//   },
+//   transparent: true,
+//   input: {
+//     activePointers: 3, // Enable multitouch
+//   },
+//   scene: [],
+// };
 
 
 
@@ -78,3 +78,93 @@ document.getElementById('game-container')?.classList.add('landscape');
 // Oppure per portrait
 document.getElementById('game-container')?.classList.add('portrait');
 */
+
+
+//! 
+// Riconoscimento mobile
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// Calcolo dimensioni dinamiche per desktop/mobile
+function calculateGameDimensions(orientation: "landscape" | "portrait") {
+  if (isMobile) {
+    // Su mobile usiamo le dimensioni reali del device
+    const width = window.innerWidth * window.devicePixelRatio;
+    const height = window.innerHeight * window.devicePixelRatio;
+
+    console.log('Mobile config:', { 
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
+      devicePixelRatio: window.devicePixelRatio,
+      gameWidth: width,
+      gameHeight: height,
+      orientation
+    });
+
+    return { width, height };
+  } else {
+    // Su desktop forziamo l'orientamento ma manteniamo la tua logica adattiva
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    let width, height;
+
+    if (orientation === "landscape") {
+      height = 1080;
+      width = Math.round((1080 * screenWidth) / screenHeight);
+    } else {
+      width = 1080;
+      height = Math.round((1080 * screenHeight) / screenWidth);
+    }
+
+    console.log('Desktop config:', {
+      screenWidth,
+      screenHeight,
+      gameWidth: width,
+      gameHeight: height,
+      orientation,
+    });
+
+    return { width, height };
+  }
+}
+
+// FUNZIONE GENERALE CHE UNIFICA TUTTO
+export const createGameConfig = (
+  orientation: "landscape" | "portrait",
+  scenes: (typeof Phaser.Scene)[]
+): Phaser.Types.Core.GameConfig => {
+  
+  const { width, height } = calculateGameDimensions(orientation);
+
+  return {
+    type: Phaser.AUTO,
+    parent: "game-container",
+    transparent: true,
+
+    width,
+    height,
+
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      expandParent: !isMobile,
+    },
+
+    physics: {
+      default: "arcade",
+      arcade: {
+        gravity: { y: 0, x: 0 },
+        debug: false,
+      },
+    },
+
+    input: { activePointers: 3 },
+    scene: scenes,
+  };
+};
+
+// Config per gioco landscape
+export const GameSparaNeveConfig = createGameConfig("landscape", []);
+
+// Config per gioco portrait
+export const AltroGiocoConfig = createGameConfig("portrait", []);
