@@ -163,41 +163,97 @@ document.getElementById('game-container')?.classList.add('portrait');
 //   };
 // };
 
+
+
+
+// export const createGameConfig = (
+//   orientation: "landscape" | "portrait",
+//   scenes: (typeof Phaser.Scene)[]
+// ): Phaser.Types.Core.GameConfig => {
+  
+//   // se siamo in portrait e il gioco deve essere landscape → inverti dimensioni
+//   const isPortrait = window.innerHeight > window.innerWidth;
+
+//   let width = window.innerWidth;
+//   let height = window.innerHeight;
+
+//   if (orientation === "landscape" && isPortrait) {
+//     width = window.innerHeight;  // inverti
+//     height = window.innerWidth;
+//   }
+
+//   return {
+//     type: Phaser.AUTO,
+//     width,
+//     height,
+
+//     parent: "game-container",
+//     transparent: true,
+
+//     scale: {
+//       mode: Phaser.Scale.FIT,
+//       autoCenter: Phaser.Scale.CENTER_BOTH,
+//       expandParent: true,
+//     },
+
+//     physics: {
+//       default: "arcade",
+//       arcade: { gravity: { y: 0, x: 0 }, debug: false },
+//     },
+
+//     input: { activePointers: 3 },
+//     scene: scenes,
+//   };
+// };
+
+// sparaneve-config.ts
+import * as Phaser from "phaser";
+
 export const createGameConfig = (
   orientation: "landscape" | "portrait",
-  scenes: (typeof Phaser.Scene)[]
+  scenes: (typeof Phaser.Scene)[],
+  opts?: { forcePortraitRotation?: boolean }
 ): Phaser.Types.Core.GameConfig => {
-  
-  // se siamo in portrait e il gioco deve essere landscape → inverti dimensioni
   const isPortrait = window.innerHeight > window.innerWidth;
-
   let width = window.innerWidth;
   let height = window.innerHeight;
 
-  if (orientation === "landscape" && isPortrait) {
-    width = window.innerHeight;  // inverti
+  // se voglio landscape ma sono in portrait e uso fallback rotation -> inverti
+  if (orientation === "landscape" && opts?.forcePortraitRotation && isPortrait) {
+    width = window.innerHeight;
     height = window.innerWidth;
+  } else {
+    // logica base: tieni proporzioni standard (puoi affinare)
+    if (orientation === "landscape") {
+      // base landscape design 1920x1080, scala in base al viewport
+      const targetHeight = 1080;
+      width = Math.round((targetHeight * window.innerWidth) / window.innerHeight);
+      height = targetHeight;
+    } else {
+      const targetWidth = 1080;
+      width = targetWidth;
+      height = Math.round((targetWidth * window.innerHeight) / window.innerWidth);
+    }
   }
 
   return {
     type: Phaser.AUTO,
     width,
     height,
-
     parent: "game-container",
     transparent: true,
-
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
       expandParent: true,
     },
-
     physics: {
       default: "arcade",
-      arcade: { gravity: { y: 0, x: 0 }, debug: false },
+      arcade: {
+        gravity: { y: 0, x: 0 },
+        debug: false,
+      },
     },
-
     input: { activePointers: 3 },
     scene: scenes,
   };
