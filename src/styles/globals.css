@@ -32,7 +32,7 @@ body {
 }
 
 /* Ruota canvas landscape quando dispositivo è in portrait */
-/*@media (orientation: portrait) {
+@media (orientation: portrait) {
   #game-container.landscape canvas {
     transform: rotate(90deg);
     transform-origin: center center;
@@ -44,10 +44,10 @@ body {
     width: 100vh !important;
     height: 100vw !important;
   }
-}*/
+}
 
 /* Ruota canvas portrait quando dispositivo è in landscape */
-/*@media (orientation: landscape) {
+@media (orientation: landscape) {
   #game-container.portrait canvas {
     transform: rotate(90deg);
     transform-origin: center center;
@@ -58,85 +58,5 @@ body {
     margin-top: -50vw;
     width: 100vh !important;
     height: 100vw !important;
-  }
-}*/
-
-/* Canvas sempre a schermo intero * /
-#game-container canvas {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Ruota automaticamente il canvas quando il device è in portrait
-@media (orientation: portrait) {
-  #game-container.landscape canvas {
-    transform: rotate(90deg);
-    transform-origin: center center;
-
-    position: absolute;
-    top: 50%;
-    left: 50%;
-
-    width: 100vh !important;
-    height: 100vw !important;
-
-    margin-left: calc(-50vh);
-    margin-top: calc(-50vw);
-  }
-} */
-
-/* #game-container {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  position: relative;
-}
-
-/* canvas sempre full * /
-#game-container canvas {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* quando il contenitore ha .landscape e il device è portrait -> ruota canvas * /
-@media (orientation: portrait) {
-  #game-container.landscape canvas {
-    transform: rotate(90deg);
-    transform-origin: center center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100vh !important;
-    height: 100vw !important;
-    margin-left: calc(-50vh);
-    margin-top: calc(-50vw);
-  }
-} */
-
-#game-container {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  position: relative;
-}
-
-/* canvas sempre full */
-#game-container canvas {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* quando il contenitore ha .landscape e il device è portrait -> ruota canvas */
-@media (orientation: portrait) {
-  #game-container.landscape canvas {
-    transform: rotate(90deg);
-    transform-origin: center center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100vh !important;
-    height: 100vw !important;
-    margin-left: calc(-50vh);
-    margin-top: calc(-50vw);
   }
 }

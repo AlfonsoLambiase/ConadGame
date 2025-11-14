@@ -19,20 +19,9 @@ export class ExitManager extends Phaser.Scene {
 
   gameScene!: Game;
 
-  // constructor(scene: Phaser.Scene) {
-  //   super({key: assetConf.scene.exitManager});
-  //   this.gameScene = scene as Game;
-  // }
-
-
-  constructor() {
+  constructor(scene: Phaser.Scene) {
     super({key: assetConf.scene.exitManager});
-  }
-
-  init(data: { gameSceneKey?: string }) {
-    if (data.gameSceneKey) {
-      this.gameScene = this.scene.get(data.gameSceneKey) as Game;
-    }
+    this.gameScene = scene as Game;
   }
 
   create() {
