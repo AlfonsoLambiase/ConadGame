@@ -80,88 +80,129 @@ document.getElementById('game-container')?.classList.add('portrait');
 */
 
 
-//! 
-// Riconoscimento mobile
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+// //! 
+// // Riconoscimento mobile
+// const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-// Calcolo dimensioni dinamiche per desktop/mobile
-function calculateGameDimensions(orientation: "landscape" | "portrait") {
-  if (isMobile) {
-    // Su mobile usiamo le dimensioni reali del device
-    const width = window.innerWidth * window.devicePixelRatio;
-    const height = window.innerHeight * window.devicePixelRatio;
+// // Calcolo dimensioni dinamiche per desktop/mobile
+// function calculateGameDimensions(orientation: "landscape" | "portrait") {
+//   if (isMobile) {
+//     // Su mobile usiamo le dimensioni reali del device
+//     const width = window.innerWidth * window.devicePixelRatio;
+//     const height = window.innerHeight * window.devicePixelRatio;
 
-    console.log('Mobile config:', { 
-      screenWidth: window.innerWidth,
-      screenHeight: window.innerHeight,
-      devicePixelRatio: window.devicePixelRatio,
-      gameWidth: width,
-      gameHeight: height,
-      orientation
-    });
+//     console.log('Mobile config:', { 
+//       screenWidth: window.innerWidth,
+//       screenHeight: window.innerHeight,
+//       devicePixelRatio: window.devicePixelRatio,
+//       gameWidth: width,
+//       gameHeight: height,
+//       orientation
+//     });
 
-    return { width, height };
-  } else {
-    // Su desktop forziamo l'orientamento ma manteniamo la tua logica adattiva
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
+//     return { width, height };
+//   } else {
+//     // Su desktop forziamo l'orientamento ma manteniamo la tua logica adattiva
+//     const screenWidth = window.innerWidth;
+//     const screenHeight = window.innerHeight;
 
-    let width, height;
+//     let width, height;
 
-    if (orientation === "landscape") {
-      height = 1080;
-      width = Math.round((1080 * screenWidth) / screenHeight);
-    } else {
-      width = 1080;
-      height = Math.round((1080 * screenHeight) / screenWidth);
-    }
+//     if (orientation === "landscape") {
+//       height = 1080;
+//       width = Math.round((1080 * screenWidth) / screenHeight);
+//     } else {
+//       width = 1080;
+//       height = Math.round((1080 * screenHeight) / screenWidth);
+//     }
 
-    console.log('Desktop config:', {
-      screenWidth,
-      screenHeight,
-      gameWidth: width,
-      gameHeight: height,
-      orientation,
-    });
+//     console.log('Desktop config:', {
+//       screenWidth,
+//       screenHeight,
+//       gameWidth: width,
+//       gameHeight: height,
+//       orientation,
+//     });
 
-    return { width, height };
-  }
-}
+//     return { width, height };
+//   }
+// }
 
-// FUNZIONE GENERALE CHE UNIFICA TUTTO
+// // FUNZIONE GENERALE CHE UNIFICA TUTTO
+// export const createGameConfig = (
+//   orientation: "landscape" | "portrait",
+//   scenes: (typeof Phaser.Scene)[]
+// ): Phaser.Types.Core.GameConfig => {
+  
+//   const { width, height } = calculateGameDimensions(orientation);
+
+//   return {
+//     type: Phaser.AUTO,
+//     parent: "game-container",
+//     transparent: true,
+
+//     width,
+//     height,
+
+//     scale: {
+//       mode: Phaser.Scale.FIT,
+//       autoCenter: Phaser.Scale.CENTER_BOTH,
+//       expandParent: !isMobile,
+//     },
+
+//     physics: {
+//       default: "arcade",
+//       arcade: {
+//         gravity: { y: 0, x: 0 },
+//         debug: false,
+//       },
+//     },
+
+//     input: { activePointers: 3 },
+//     scene: scenes,
+//   };
+// };
+
 export const createGameConfig = (
   orientation: "landscape" | "portrait",
   scenes: (typeof Phaser.Scene)[]
 ): Phaser.Types.Core.GameConfig => {
   
-  const { width, height } = calculateGameDimensions(orientation);
+  // se siamo in portrait e il gioco deve essere landscape → inverti dimensioni
+  const isPortrait = window.innerHeight > window.innerWidth;
+
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+
+  if (orientation === "landscape" && isPortrait) {
+    width = window.innerHeight;  // inverti
+    height = window.innerWidth;
+  }
 
   return {
     type: Phaser.AUTO,
-    parent: "game-container",
-    transparent: true,
-
     width,
     height,
+
+    parent: "game-container",
+    transparent: true,
 
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      expandParent: !isMobile,
+      expandParent: true,
     },
 
     physics: {
       default: "arcade",
-      arcade: {
-        gravity: { y: 0, x: 0 },
-        debug: false,
-      },
+      arcade: { gravity: { y: 0, x: 0 }, debug: false },
     },
 
     input: { activePointers: 3 },
     scene: scenes,
   };
 };
+
 
 // Config per gioco landscape
 export const GameSparaNeveConfig = createGameConfig("landscape", []);

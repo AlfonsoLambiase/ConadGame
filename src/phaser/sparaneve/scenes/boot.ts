@@ -31,12 +31,12 @@ export class Boot extends Phaser.Scene {
 
       this.isInit = true;
     }
-
-    // Quando inizializzi il gioco landscape
-    document.getElementById('game-container')?.classList.add('landscape');
   }
 
   preload() {
+    // Forza modalità landscape del canvas
+    document.getElementById("game-container")?.classList.add("landscape");
+
     console.log("Load boot.ts");
     this.#createBars();
 
