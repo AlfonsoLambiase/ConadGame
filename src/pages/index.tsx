@@ -1,12 +1,17 @@
 import Link from "next/link";
 
 const giochi = [
-  { title: "Bubble-Shooter", path: "/giochi/bubble-shooter" },
-  { title: "Basket", path: "/giochi/basket" },
-  { title: "Bottle-Puzzle", path: "/giochi/bottle" },
-  { title: "Tetris", path: "/giochi/tetris" },
-  { title: "Spara Neve", path: "/giochi/spara-neve" },
-  { title: "Raccogli Note", path: "/giochi/raccogli-note" },
+  // { title: "Bubble-Shooter", path: "/giochi/bubble-shooter" },
+  // { title: "Basket", path: "/giochi/basket" },
+  // { title: "Bottle-Puzzle", path: "/giochi/bottle" },
+  // { title: "Tetris", path: "/giochi/tetris" },
+  // { title: "Spara Neve", path: "/giochi/spara-neve" },
+  // { title: "Raccogli Note", path: "/giochi/raccogli-note" },
+  { title: "Collega Tutto", path: "/giochi/collega-tutto" },
+  { title: "Crea Parole", path: "/giochi/crea-parole" },
+  { title: "Ritmo Giusto", path: "/giochi/ritmo-giusto" },
+  { title: "Trova Parole", path: "/giochi/trova-parole" },
+  { title: "Impara Inglese", path: "/giochi/impara-inglese" },
 ];
 
 export default function Home() {

@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import {BasketAssetConf} from "../shared/config/asset-conf.const";
+import {TrovaParoleAssetConf} from "../shared/config/asset-conf.const";
 
 import {Game} from "./game";
 
 import {EventBus} from "@/phaser/EventBus";
-
+import {PhaserEvents} from "@/lib/phaser-events";
 import router from "next/router";
 
+const assetConf = TrovaParoleAssetConf; //* Generalizzazione
 
 export class ExitManager extends Phaser.Scene {
   private width!: number;
@@ -18,7 +19,7 @@ export class ExitManager extends Phaser.Scene {
   gameScene!: Game;
 
   constructor(scene: Phaser.Scene) {
-    super({key: BasketAssetConf.scene.exitManager});
+    super({key: assetConf.scene.exitManager});
     this.gameScene = scene as Game;
   }
 
@@ -28,8 +29,8 @@ export class ExitManager extends Phaser.Scene {
     this.height = config.height;
     this.width = config.width;
 
-    if (this.scene.isActive(BasketAssetConf.scene.game)) {
-      this.scene.pause(BasketAssetConf.scene.game);
+    if (this.scene.isActive(assetConf.scene.game)) {
+      this.scene.pause(assetConf.scene.game);
       this.sound.pauseAll();
     }
 
@@ -56,18 +57,18 @@ export class ExitManager extends Phaser.Scene {
       .container(centerX, centerY)
       .setDepth(101)
       .setScrollFactor(0)
-      .setScale(this.gameScene.setDynamicValueBasedOnScale(0.4, 1.1));
+      .setScale(this.gameScene.setDynamicValueBasedOnScale(0.4, 0.95));
 
     // Load popup background image
     const popupExitGame = this.add
-      .image(0, 0, BasketAssetConf.image.popupExitGame)
+      .image(0, 0, assetConf.image.popupExitGame)
       .setOrigin(0.5)
       .setDepth(101);
 
     // Cancel button
     const btnCancel = this.add
-      .image(-277, 250, BasketAssetConf.image.btnCancel) // horizontal
-      //.image(-509, 194, GameDemo02AssetConf.image.btnCancel) // vertical
+      .image(-277, 250, assetConf.image.btnCancel) // horizontal
+      //.image(-509, 194, assetConf.image.btnCancel) // vertical
       .setOrigin(0.5)
       .setDepth(102)
       .setInteractive({useHandCursor: true});
@@ -76,22 +77,22 @@ export class ExitManager extends Phaser.Scene {
       this.backgroundOverlay.setVisible(false);
       this.popupContainer.setVisible(false);
 
-      if (!this.scene.isActive(BasketAssetConf.scene.game)) {
-        this.scene.resume(BasketAssetConf.scene.game);
+      if (!this.scene.isActive(assetConf.scene.game)) {
+        this.scene.resume(assetConf.scene.game);
         this.sound.resumeAll();
       }
     });
 
-    // Confirm button
+      // Confirm button
     const btnConfirm = this.add
-      .image(267.5, 250, BasketAssetConf.image.btnConfirm) // horizontal
+      .image(267.5, 250, assetConf.image.btnConfirm) // horizontal
       //.image(498, 194, GameDemo02AssetConf.image.btnConfirm) // vertical
       .setOrigin(0.5)
       .setDepth(102)
       .setInteractive({useHandCursor: true});
 
     btnConfirm.on("pointerdown", () => {
-      const game = this.scene.get(BasketAssetConf.scene.game) as Game;
+      const game = this.scene.get(assetConf.scene.game) as Game;
 
       if (game.theme) game.theme.stop();
       router.push("/");
@@ -111,7 +112,7 @@ export class ExitManager extends Phaser.Scene {
       .image(
         width - this.gameScene.setDynamicValueBasedOnScale(50, 120),
         this.gameScene.setDynamicValueBasedOnScale(50, 120),
-        BasketAssetConf.image.btnExitGame,
+        assetConf.image.btnExitGame,
       )
       .setOrigin(0.5)
       .setInteractive()
@@ -122,10 +123,10 @@ export class ExitManager extends Phaser.Scene {
     exitButton.on("pointerdown", () => {
       if (isTesting) {
         if (theme) theme.stop();
-         router.push("/");
+        EventBus.emit(PhaserEvents.EXIT_GAME);
       } else {
-        scene.scene.launch(BasketAssetConf.scene.exitManager);
-        const exitManager = scene.scene.get(BasketAssetConf.scene.exitManager) as ExitManager;
+        scene.scene.launch(assetConf.scene.exitManager);
+        const exitManager = scene.scene.get(assetConf.scene.exitManager) as ExitManager;
       }
     });
 
