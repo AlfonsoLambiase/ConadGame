@@ -34,11 +34,11 @@ export class Outro extends Phaser.Scene {
 
     const {width, height} = this.scale;
 
-    // Sfondo centrato e deformato per coprire tutto
-    const background = this.add
-      .image(width / 2, height / 2, assetConf.image.endBackground)
-      .setOrigin(0.5, 0.5)
-      .setDisplaySize(width, height);
+     // Sfondo centrato e deformato per coprire tutto
+    // const background = this.add
+    //   .image(width / 2, height / 2, assetConf.image.endBackground)
+    //   .setOrigin(0.5, 0.5)
+    //   .setDisplaySize(width, height);
 
     // Immagine principale con origine in basso al centro
     const foreground = this.add.image(width / 2, height, this.imageKey).setOrigin(0.5, 1); // Origine in basso al centro

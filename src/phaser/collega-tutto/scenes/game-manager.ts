@@ -1,5 +1,4 @@
 
-
 import Phaser from "phaser";
 
 import {AudioManager} from "../components/audioManager";
@@ -783,7 +782,7 @@ export class GameManager extends Phaser.Scene {
     let blinkCount = 0;
     const maxBlinks = 6;
 
-    const blinkTimer = this.gameScene.time.addEvent({
+    this.gameScene.time.addEvent({
       delay: 200,
       repeat: maxBlinks - 1,
       callback: () => {
@@ -915,9 +914,6 @@ export class GameManager extends Phaser.Scene {
     gridBg.setDepth(0);
 
     console.log("Grid scale applicata:", finalScale);
-
-    const strokeColor = 0x000000;
-    const strokeWidth = 2;
 
     const helpButton = this.add
       .image(0, 0, "iconHelp")
