@@ -86,7 +86,6 @@ export class GameManager extends Phaser.Scene {
   private readonly PADDING_LEFT = 50;
   private readonly PADDING_RIGHT = 50;
   private readonly GRID_SIZE = 9;
-  private readonly BACKGROUND_SIZE = 900;
 
   private marginTop = 200;
   private cellSize!: number;
@@ -104,8 +103,6 @@ export class GameManager extends Phaser.Scene {
   private grid: WordSearchCell[][] = [];
   private wordsToFind: WordConfig[] = [];
   private foundWords: Set<string> = new Set();
-  private wordLabels: Phaser.GameObjects.Text[] = [];
-  private backgroundImage!: Phaser.GameObjects.Image;
 
   // Selezione parole
   private isSelecting: boolean = false;
@@ -153,8 +150,6 @@ export class GameManager extends Phaser.Scene {
   private SELECTION_LINE_ALPHA = 0.8;
 
   private FOUND_TEXT_COLOR = "#da5d29"; //* lettere trovate e marcate come check
-  // Container di highlights permanenti delle parole trovate
-  private wordHighlights: Phaser.GameObjects.Container[] = [];
 
   private labelsContainer!: Phaser.GameObjects.Container;
 
@@ -429,8 +424,6 @@ export class GameManager extends Phaser.Scene {
     const bgWidth = this.cellSize * this.GRID_SIZE;
     const bgHeight = bgWidth; // Mantiene proporzioni quadrate
 
-    const bgX = this.gridStartX + bgWidth / 2;
-    const bgY = this.gridStartY + bgHeight / 2;
 
     // Crea un rettangolo come placeholder per lo sfondo
     // In un gioco reale, sostituire con: this.add.image(bgX, bgY, 'background_key')
@@ -596,7 +589,6 @@ export class GameManager extends Phaser.Scene {
     }
 
     // Sceglie una parola casuale tra quelle non trovate
-    const wordToHint = unfoundWords[Math.floor(Math.random() * unfoundWords.length)];
 
     this.completeFirstAvailableWord();
     this.hintsRemaining--;

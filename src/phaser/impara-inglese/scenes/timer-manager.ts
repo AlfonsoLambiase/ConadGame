@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {CreaParoleAssetConf} from "../shared/config/asset-conf.const";
-
-import {Game} from "./game";
+import { CreaParoleAssetConf } from "@/phaser/crea-parole/shared/config/asset-conf.const";
+import { Game } from "./game";
 
 const assetConf = CreaParoleAssetConf; //* Generalizzazione
 
@@ -18,7 +16,7 @@ export class TimerManager extends Phaser.Scene {
   private gameScene!: Game;
 
   constructor() {
-    super({key: assetConf.scene.timerManager});
+    super({ key: assetConf.scene.timerManager });
   }
 
   create(): void {
@@ -35,13 +33,18 @@ export class TimerManager extends Phaser.Scene {
   }
 
   addTimer(): void {
-    const config = this.sys.game.config as {width: number; height: number};
+    const config = this.sys.game.config as { width: number; height: number };
     const safeTop = this.registry.get("safeTop") || 0; //! notch Area
 
     // 1. Calcolo posizione container - ALTO DESTRA (opposto allo ScoreContainer)
     const centerX =
-      config.width - this.gameScene.setDynamicValueBasedOnScale(100, 220) + this.ofssetX;
-    const centerY = this.gameScene.setDynamicValueBasedOnScale(180, 380) + this.ofssetY + safeTop;
+      config.width -
+      this.gameScene.setDynamicValueBasedOnScale(100, 220) +
+      this.ofssetX;
+    const centerY =
+      this.gameScene.setDynamicValueBasedOnScale(180, 380) +
+      this.ofssetY +
+      safeTop;
 
     // 2. Creazione container
     const timerContainer = this.add.container(centerX, centerY);
@@ -71,7 +74,9 @@ export class TimerManager extends Phaser.Scene {
     timerContainer.add([backgroundTimer, iconTimer, this.timerText]);
 
     // 7. Scala del container
-    timerContainer.setScale(this.gameScene.setDynamicValueBasedOnScale(0.5, 1.0));
+    timerContainer.setScale(
+      this.gameScene.setDynamicValueBasedOnScale(0.5, 1.0)
+    );
   }
 
   startTimer() {
