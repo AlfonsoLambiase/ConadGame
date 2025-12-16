@@ -66,6 +66,7 @@ const GAME_SETS = [
       "barieno",
       "binario",
       "creino",
+      "banco",
       "biancore",
       "bianco",
       "coreani",
