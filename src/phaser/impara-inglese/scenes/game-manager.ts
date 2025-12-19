@@ -319,7 +319,7 @@ export class GameManager extends Phaser.Scene {
             this.inputText.setColor("#ff0000");
           }
         })
-        .catch((error: any) => {
+        .catch((error: unknown) => {
           console.error("Permesso microfono negato:", error);
           this.speak("Permesso microfono necessario");
           this.inputText.setText("Tocca di nuovo per concedere il permesso");
