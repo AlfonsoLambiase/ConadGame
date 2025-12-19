@@ -110,20 +110,14 @@ export class GameManager extends Phaser.Scene {
       this.isGameOver = false;
     });
 
-    // Richiedi permesso microfono prima di inizializzare
-    this.requestMicrophonePermission().then(() => {
-      // Inizializza il riconoscimento vocale e la sintesi
-      this.setupSpeechRecognition();
-      this.setupSpeechSynthesis();
+    // Inizializza il riconoscimento vocale e la sintesi (senza richiedere permesso)
+    this.setupSpeechRecognition();
+    this.setupSpeechSynthesis();
 
-      // Crea l'interfaccia utente
-      this.createVoiceUI();
-    }).catch((error) => {
-      console.error("Permesso microfono negato o non disponibile:", error);
-      // Crea comunque l'UI ma mostra un messaggio di errore
-      this.createVoiceUI();
-      this.showMicrophoneError();
-    });
+    // Crea l'interfaccia utente
+    this.createVoiceUI();
+    
+    // Non richiedere il permesso automaticamente - sarà richiesto al primo click sul bottone
   }
 
   private computeLayoutDimensions(): void {
@@ -154,27 +148,31 @@ export class GameManager extends Phaser.Scene {
   }
 
   private showMicrophoneError(): void {
+    // Rimuovi eventuali messaggi di errore precedenti
+    const existingError = this.children.getByName("microphoneError");
+    if (existingError) {
+      existingError.destroy();
+    }
+
     const centerX = this.gameWidth / 2;
-    const centerY = this.gameHeight / 2 + this.gameScene.setDynamicValueBasedOnScale(120, 150);
-    const errorFontSize = this.gameScene.setDynamicValueBasedOnScale(18, 24);
+    const centerY = this.gameHeight / 2 + this.gameScene.setDynamicValueBasedOnScale(250, 300);
+    const errorFontSize = this.gameScene.setDynamicValueBasedOnScale(16, 20);
     const wordWrapWidth = this.gameWidth - this.gameScene.setDynamicValueBasedOnScale(30, 40);
 
     const errorText = this.add
-      .text(centerX, centerY, "Permesso microfono necessario per giocare", {
+      .text(centerX, centerY, "Tocca il microfono per concedere il permesso", {
         fontSize: `${errorFontSize}px`,
-        color: "#ff0000",
+        color: "#ff9900",
         fontStyle: "bold",
         fontFamily: "Paytone One",
         align: "center",
         wordWrap: { width: wordWrapWidth },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setName("microphoneError");
 
-    // Disabilita il bottone microfono
-    if (this.micButton) {
-      this.micButton.setAlpha(0.5);
-      this.micButton.removeInteractive();
-    }
+    // NON disabilitare il bottone - l'utente deve poter cliccare di nuovo
+    // Il permesso verrà richiesto nuovamente al prossimo click
   }
 
   private setupSpeechRecognition(): void {
@@ -302,25 +300,34 @@ export class GameManager extends Phaser.Scene {
     if (this.isListening) {
       this.recognition.stop();
       this.isListening = false;
+      this.updateMicButtonState();
     } else {
-      // Richiedi nuovamente il permesso se necessario
+      // Richiedi il permesso solo quando l'utente clicca (richiesto su mobile)
       this.requestMicrophonePermission()
         .then(() => {
-          this.inputText.setText("Ascoltando...");
-          this.recognition!.start();
-          this.isListening = true;
-          this.updateMicButtonState();
+          // Permesso ottenuto, avvia il riconoscimento
+          try {
+            this.inputText.setText("Ascoltando...");
+            this.inputText.setColor("#ffff00");
+            this.recognition!.start();
+            this.isListening = true;
+            this.updateMicButtonState();
+          } catch (error) {
+            console.error("Errore nell'avvio del riconoscimento:", error);
+            this.speak("Errore nell'avvio del microfono");
+            this.inputText.setText("Errore");
+            this.inputText.setColor("#ff0000");
+          }
         })
-        .catch((error) => {
+        .catch((error: any) => {
           console.error("Permesso microfono negato:", error);
           this.speak("Permesso microfono necessario");
-          this.inputText.setText("Permesso negato");
+          this.inputText.setText("Tocca di nuovo per concedere il permesso");
           this.inputText.setColor("#ff0000");
+          // Mostra messaggio più chiaro
+          this.showMicrophoneError();
         });
-      return;
     }
-
-    this.updateMicButtonState();
   }
 
   private updateMicButtonState(): void {
