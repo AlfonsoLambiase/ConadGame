@@ -77,8 +77,11 @@ export class GameManager extends Phaser.Scene {
   // Proprietà per il riconoscimento vocale
   private recognition: SpeechRecognition | null = null;
   private synthesis: SpeechSynthesis | null = null;
+  private wordsList: string[] = ["hello" , "apple", "water", "happy", "world"]; // Lista di 5 parole
+  private currentWordIndex: number = 0; // Indice della parola corrente
   private targetWord: string = "hello"; // Parola target da riconoscere
   private inputText!: Phaser.GameObjects.Text;
+  private targetText!: Phaser.GameObjects.Text; // Riferimento al testo target
   private micButton!: Phaser.GameObjects.Container;
   private isListening: boolean = false;
 
@@ -90,6 +93,9 @@ export class GameManager extends Phaser.Scene {
     if (data.gameScene) {
       this.gameScene = data.gameScene;
     }
+    // Inizializza con la prima parola
+    this.currentWordIndex = 0;
+    this.targetWord = this.wordsList[this.currentWordIndex].toLowerCase();
     if (data.targetWord) {
       this.targetWord = data.targetWord.toLowerCase();
     }
@@ -104,12 +110,20 @@ export class GameManager extends Phaser.Scene {
       this.isGameOver = false;
     });
 
-    // Inizializza il riconoscimento vocale e la sintesi
-    this.setupSpeechRecognition();
-    this.setupSpeechSynthesis();
+    // Richiedi permesso microfono prima di inizializzare
+    this.requestMicrophonePermission().then(() => {
+      // Inizializza il riconoscimento vocale e la sintesi
+      this.setupSpeechRecognition();
+      this.setupSpeechSynthesis();
 
-    // Crea l'interfaccia utente
-    this.createVoiceUI();
+      // Crea l'interfaccia utente
+      this.createVoiceUI();
+    }).catch((error) => {
+      console.error("Permesso microfono negato o non disponibile:", error);
+      // Crea comunque l'UI ma mostra un messaggio di errore
+      this.createVoiceUI();
+      this.showMicrophoneError();
+    });
   }
 
   private computeLayoutDimensions(): void {
@@ -119,6 +133,48 @@ export class GameManager extends Phaser.Scene {
     this.gameHeight = Number(config.height);
 
     this.marginTop = this.gameScene.setDynamicValueBasedOnScale(150, 400);
+  }
+
+  private async requestMicrophonePermission(): Promise<void> {
+    // Verifica se l'API è disponibile
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("getUserMedia non supportato dal browser");
+    }
+
+    try {
+      // Richiedi permesso per il microfono
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Chiudi lo stream immediatamente, serve solo per ottenere il permesso
+      stream.getTracks().forEach((track) => track.stop());
+      console.log("Permesso microfono concesso");
+    } catch (error) {
+      console.error("Errore nella richiesta permesso microfono:", error);
+      throw error;
+    }
+  }
+
+  private showMicrophoneError(): void {
+    const centerX = this.gameWidth / 2;
+    const centerY = this.gameHeight / 2 + this.gameScene.setDynamicValueBasedOnScale(120, 150);
+    const errorFontSize = this.gameScene.setDynamicValueBasedOnScale(18, 24);
+    const wordWrapWidth = this.gameWidth - this.gameScene.setDynamicValueBasedOnScale(30, 40);
+
+    const errorText = this.add
+      .text(centerX, centerY, "Permesso microfono necessario per giocare", {
+        fontSize: `${errorFontSize}px`,
+        color: "#ff0000",
+        fontStyle: "bold",
+        fontFamily: "Paytone One",
+        align: "center",
+        wordWrap: { width: wordWrapWidth },
+      })
+      .setOrigin(0.5);
+
+    // Disabilita il bottone microfono
+    if (this.micButton) {
+      this.micButton.setAlpha(0.5);
+      this.micButton.removeInteractive();
+    }
   }
 
   private setupSpeechRecognition(): void {
@@ -177,43 +233,48 @@ export class GameManager extends Phaser.Scene {
     const centerX = this.gameWidth / 2;
     const centerY = this.gameHeight / 2;
 
+    const targetFontSize = this.gameScene.setDynamicValueBasedOnScale(24, 32);
+    const inputFontSize = this.gameScene.setDynamicValueBasedOnScale(28, 36);
+    const offsetY = this.gameScene.setDynamicValueBasedOnScale(200, 250);
+    const inputOffsetY = this.gameScene.setDynamicValueBasedOnScale(150, 180);
+
     // Testo che mostra la parola target
-    const targetText = this.add
+    this.targetText = this.add
       .text(
         centerX,
-        centerY - 100,
+        centerY - offsetY,
         `Parola da pronunciare: ${this.targetWord}`,
         {
-          fontSize: "32px",
+          fontSize: `${targetFontSize}px`,
           color: "#ffffff",
-          fontStyle: "bold",
+          fontFamily: "Paytone One",
         }
       )
       .setOrigin(0.5);
 
     // Input text (mostra quello che viene riconosciuto)
     this.inputText = this.add
-      .text(centerX, centerY - 30, "", {
-        fontSize: "36px",
+      .text(centerX, centerY - inputOffsetY, "", {
+        fontSize: `${inputFontSize}px`,
         color: "#ffff00",
         fontStyle: "bold",
+        fontFamily: "Paytone One",
       })
       .setOrigin(0.5);
 
     // Bottone microfono
-    this.createMicButton(centerX, centerY + 60);
+    const micOffsetY = this.gameScene.setDynamicValueBasedOnScale(50, 60);
+    this.createMicButton(centerX, centerY + micOffsetY);
   }
 
   private createMicButton(x: number, y: number): void {
-    // Cerchio del bottone
-    const circle = this.add.circle(0, 0, 40, 0x4a90e2);
+    // Immagine microfono dagli assets
+    const micImage = this.add.image(0, 0, assetConf.image.mic);
+    micImage.setOrigin(0.5);
+    micImage.setScale(this.gameScene.setDynamicValueBasedOnScale(0.03, 0.05)); // Scala l'immagine al 30% della dimensione originale
 
-    // Icona microfono (semplificata)
-    const micBody = this.add.rectangle(0, -5, 15, 25, 0xffffff);
-    const micBase = this.add.rectangle(0, 15, 25, 8, 0xffffff);
-
-    this.micButton = this.add.container(x, y, [circle, micBody, micBase]);
-    this.micButton.setSize(80, 80);
+    this.micButton = this.add.container(x, y, [micImage]);
+    this.micButton.setSize(micImage.width * 0.3, micImage.height * 0.3);
     this.micButton.setInteractive({ useHandCursor: true });
 
     // Eventi del bottone
@@ -222,17 +283,19 @@ export class GameManager extends Phaser.Scene {
     });
 
     this.micButton.on("pointerover", () => {
-      circle.setFillStyle(0x357abd);
+      micImage.setTint(0x357abd);
     });
 
     this.micButton.on("pointerout", () => {
-      circle.setFillStyle(this.isListening ? 0xe74c3c : 0x4a90e2);
+      micImage.clearTint();
+      this.updateMicButtonState();
     });
   }
 
   private toggleListening(): void {
     if (!this.recognition) {
       console.error("Riconoscimento vocale non disponibile");
+      this.speak("Microfono non disponibile");
       return;
     }
 
@@ -240,17 +303,33 @@ export class GameManager extends Phaser.Scene {
       this.recognition.stop();
       this.isListening = false;
     } else {
-      this.inputText.setText("Ascoltando...");
-      this.recognition.start();
-      this.isListening = true;
+      // Richiedi nuovamente il permesso se necessario
+      this.requestMicrophonePermission()
+        .then(() => {
+          this.inputText.setText("Ascoltando...");
+          this.recognition!.start();
+          this.isListening = true;
+          this.updateMicButtonState();
+        })
+        .catch((error) => {
+          console.error("Permesso microfono negato:", error);
+          this.speak("Permesso microfono necessario");
+          this.inputText.setText("Permesso negato");
+          this.inputText.setColor("#ff0000");
+        });
+      return;
     }
 
     this.updateMicButtonState();
   }
 
   private updateMicButtonState(): void {
-    const circle = this.micButton.getAt(0) as Phaser.GameObjects.Arc;
-    circle.setFillStyle(this.isListening ? 0xe74c3c : 0x4a90e2);
+    const micImage = this.micButton.getAt(0) as Phaser.GameObjects.Image;
+    if (this.isListening) {
+      micImage.setTint(0xe74c3c); // Rosso quando sta ascoltando
+    } else {
+      micImage.clearTint(); // Colore normale quando non ascolta
+    }
   }
 
   private checkWordMatch(spokenWord: string): void {
@@ -261,19 +340,19 @@ export class GameManager extends Phaser.Scene {
       this.speak("Bravo!");
       this.inputText.setColor("#00ff00");
 
-      // Opzionale: trigger evento di successo
+      // Incrementa punteggio e passa alla prossima parola
       this.onWordCorrect();
     } else {
       console.log("✗ Parola errata");
       this.speak("Riprova!");
       this.inputText.setColor("#ff0000");
-    }
 
-    // Reset dopo 2 secondi
-    this.time.delayedCall(2000, () => {
-      this.inputText.setText("");
-      this.inputText.setColor("#ffff00");
-    });
+      // Reset dopo 2 secondi
+      this.time.delayedCall(2000, () => {
+        this.inputText.setText("");
+        this.inputText.setColor("#ffff00");
+      });
+    }
   }
 
   private speak(text: string): void {
@@ -295,9 +374,33 @@ export class GameManager extends Phaser.Scene {
   }
 
   private onWordCorrect(): void {
-    // Qui puoi aggiungere logica per quando la parola è corretta
-    // Ad esempio: incrementare punteggio, passare alla prossima parola, etc.
-    console.log("Evento: parola corretta riconosciuta");
+    // Incrementa il punteggio tramite UIManager
+    if (this.gameScene && this.gameScene.uiManager) {
+      this.gameScene.uiManager.updateScore(1);
+    }
+
+    // Passa alla prossima parola
+    this.currentWordIndex++;
+
+    // Se abbiamo completato tutte le 5 parole, attiva il game over
+    if (this.currentWordIndex >= this.wordsList.length) {
+      console.log("Tutte le parole completate!");
+      this.time.delayedCall(1500, () => {
+        this.isGameOver = true;
+        this.checkGameOver();
+      });
+      return;
+    }
+
+    // Aggiorna la parola target
+    this.targetWord = this.wordsList[this.currentWordIndex].toLowerCase();
+    this.targetText.setText(`Parola da pronunciare: ${this.targetWord}`);
+
+    // Reset input text dopo un breve delay
+    this.time.delayedCall(2000, () => {
+      this.inputText.setText("");
+      this.inputText.setColor("#ffff00");
+    });
   }
 
   // Metodo pubblico per cambiare la parola target
@@ -305,16 +408,8 @@ export class GameManager extends Phaser.Scene {
     this.targetWord = word.toLowerCase();
 
     // Aggiorna il testo se esiste
-    const targetTextObj = this.children.list.find(
-      (child) =>
-        child instanceof Phaser.GameObjects.Text &&
-        (child as Phaser.GameObjects.Text).text.includes(
-          "Parola da pronunciare"
-        )
-    ) as Phaser.GameObjects.Text;
-
-    if (targetTextObj) {
-      targetTextObj.setText(`Parola da pronunciare: ${this.targetWord}`);
+    if (this.targetText) {
+      this.targetText.setText(`Parola da pronunciare: ${this.targetWord}`);
     }
   }
 

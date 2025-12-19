@@ -11,13 +11,13 @@ const giochi = [
   { title: "Crea Parole", path: "/giochi/crea-parole" },
   { title: "Ritmo Giusto", path: "/giochi/ritmo-giusto" },
   { title: "Trova Parole", path: "/giochi/trova-parole" },
-  { title: "Impara Inglese", path: "/giochi/impara-inglese" },
+  { title: "Impara Inglese", path: "/giochi/impara-inglese " },
 ];
 
 export default function Home() {
   return (
     <div className="min-h-screen p-10 flex flex-col items-center gap-10 bg-gray-100">
-      <h1 className="text-3xl font-bold text-black">Prova un gioco 10</h1>
+      <h1 className="text-3xl font-bold text-black">PROVA UN GIOCO</h1>
       <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {giochi.map((gioco) => (
           <li

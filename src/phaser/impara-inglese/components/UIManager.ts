@@ -11,7 +11,7 @@ export class UIManager {
   gameScene!: Game;
 
   public score = 0;
-  public maxScore = 6;
+  public maxScore = 5;
   private displayedScore: number = 0;
   private scoreText!: Phaser.GameObjects.Text;
   originalScale: number = 1;
@@ -30,8 +30,8 @@ export class UIManager {
   createUI(): void {
     this.#createBackgroundGame();
     this.#createBackgroundLogoAndLogo();
-    // this.#createContainerScore();
-    // this.#createIconHelp();
+    this.#createContainerScore();
+    this.#createIconHelp();
   }
 
   public setGameScene(scene: Game): void {

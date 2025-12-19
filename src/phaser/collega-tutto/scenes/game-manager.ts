@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console */
 
 import Phaser from "phaser";
 
@@ -160,6 +162,14 @@ export class GameManager extends Phaser.Scene {
       return;
     }
 
+    // Fallback: salva la prima coppia disponibile trovata
+    let fallbackPair: {
+      pair: (typeof remainingPairs)[0];
+      startBlock: Phaser.GameObjects.Image;
+      endBlock: Phaser.GameObjects.Image;
+      pathBlocks: Phaser.GameObjects.Image[];
+    } | null = null;
+
     // Prova ogni coppia e verifica se collegandola le altre rimangono collegabili
     for (const pair of remainingPairs) {
       const startBlock = this.getNearestBlock(pair.obj1.x, pair.obj1.y);
@@ -171,6 +181,11 @@ export class GameManager extends Phaser.Scene {
       const pathBlocks = this.computeAutoPath(startBlock, endBlock);
 
       if (!pathBlocks || pathBlocks.length < 1) continue;
+
+      // Salva come fallback se è la prima coppia disponibile
+      if (!fallbackPair) {
+        fallbackPair = {pair, startBlock, endBlock, pathBlocks};
+      }
 
       // SIMULAZIONE: occupa temporaneamente i blocchi
       const originalOccupied: Map<Phaser.GameObjects.Image, boolean> = new Map();
@@ -226,16 +241,44 @@ export class GameManager extends Phaser.Scene {
       }
     }
 
+    // Se non abbiamo trovato una coppia sicura, usa il fallback (prima coppia disponibile)
+    if (fallbackPair) {
+      console.log(
+        `Nessuna coppia sicura trovata, collego la prima disponibile: ${fallbackPair.pair.obj1.texture.key}`,
+      );
+      this.executeAutoConnection(
+        fallbackPair.pair,
+        fallbackPair.startBlock,
+        fallbackPair.endBlock,
+        fallbackPair.pathBlocks,
+      );
+
+      return;
+    }
+
+    // Solo se non c'è NESSUNA coppia collegabile, mostra la popup
+    console.log("Creata popup");
+    const {width, height} = this.scale;
+
+    const overlay = this.add.graphics();
+
+    overlay.fillStyle(0x000000, 0.4); // nero con alpha 40%
+    overlay.fillRect(0, 0, width, height);
+
+    // opzionale: portalo sopra a tutto
+    //overlay.setDepth(1000);
+
     const popup = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, "popupHelp");
 
     popup.setOrigin(0.5); // Centro perfetto
-    popup.setScale(0.8); // Scala leggermente aumentata
+    popup.setScale(this.gameScene.setDynamicValueBasedOnScale(0.5, 1.1)); // Scala leggermente aumentata
     popup.setDepth(99);
     // Dopo 2 secondi lo rimuovi
-    this.time.delayedCall(1000, () => {
+    this.time.delayedCall(2300, () => {
       popup.destroy();
+      overlay.destroy();
     });
-    console.warn("Nessuna coppia può essere collegata senza bloccare le altre!");
+    console.warn("Nessuna coppia può essere collegata!");
   }
 
   // Esegue effettivamente il collegamento automatico
@@ -290,6 +333,7 @@ export class GameManager extends Phaser.Scene {
         index++;
         // Ridisegna l'intera linea morbida fino al punto corrente
         const currentPoints = allPoints.slice(0, index);
+
         this.drawSmoothLine(line, currentPoints, color, lineWidth);
       },
     });
@@ -586,6 +630,7 @@ export class GameManager extends Phaser.Scene {
             {x: this.startObj.x, y: this.startObj.y},
             ...this.pathBlocks.map((b) => ({x: b.x, y: b.y})),
           ];
+
           this.drawSmoothLine(this.currentLineObj, points, color, lineWidth);
 
           // Audio coppia sbagliata
@@ -618,6 +663,7 @@ export class GameManager extends Phaser.Scene {
           {x: this.startObj.x, y: this.startObj.y},
           ...this.pathBlocks.map((b) => ({x: b.x, y: b.y})),
         ];
+
         this.drawSmoothLine(this.currentLineObj, points, color, lineWidth);
       });
 
@@ -1064,7 +1110,7 @@ export class GameManager extends Phaser.Scene {
   }
 
   /**
-   * Disegna una linea morbida con curve agli angoli usando Catmull-Rom Spline
+   * Disegna una linea normale collegando i punti in sequenza
    */
   private drawSmoothLine(
     graphics: Phaser.GameObjects.Graphics,
@@ -1077,25 +1123,22 @@ export class GameManager extends Phaser.Scene {
     graphics.clear();
     graphics.lineStyle(lineWidth, color);
 
-    if (points.length === 2) {
-      // Solo 2 punti: linea dritta
-      graphics.moveTo(points[0].x, points[0].y);
-      graphics.lineTo(points[1].x, points[1].y);
-      graphics.strokePath();
-      return;
-    }
-
-    // Catmull-Rom Spline per curve morbide attraverso tutti i punti
-    const spline = new Phaser.Curves.Spline(points.map((p) => new Phaser.Math.Vector2(p.x, p.y)));
-
-    // Campiona punti dalla spline per una curva fluida
-    const smoothPoints = spline.getPoints(this.SMOOTH_SEGMENTS * (points.length - 1));
-
-    graphics.moveTo(smoothPoints[0].x, smoothPoints[0].y);
-    for (let i = 1; i < smoothPoints.length; i++) {
-      graphics.lineTo(smoothPoints[i].x, smoothPoints[i].y);
+    // LINEE NORMALI - Commentata la parte con spline morbide
+    graphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      graphics.lineTo(points[i].x, points[i].y);
     }
     graphics.strokePath();
+
+    // // Catmull-Rom Spline per curve morbide attraverso tutti i punti (COMMENTATO)
+    // const spline = new Phaser.Curves.Spline(points.map((p) => new Phaser.Math.Vector2(p.x, p.y)));
+    // // Campiona punti dalla spline per una curva fluida
+    // const smoothPoints = spline.getPoints(this.SMOOTH_SEGMENTS * (points.length - 1));
+    // graphics.moveTo(smoothPoints[0].x, smoothPoints[0].y);
+    // for (let i = 1; i < smoothPoints.length; i++) {
+    //   graphics.lineTo(smoothPoints[i].x, smoothPoints[i].y);
+    // }
+    // graphics.strokePath();
   }
 }
 

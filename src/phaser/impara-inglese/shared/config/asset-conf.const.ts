@@ -24,6 +24,7 @@ export const ImparaIngleseAssetConf = {
     backgroundGame: "backgroundGame",
     backgroundLogo: "backgroundLogo",
     backgroundScore: "backgroundScore",
+    mic: "mic",
     logo: "logo",
     iconHelp: "iconHelp",
     iconScore: "iconScore",

@@ -65,11 +65,12 @@ const GAME_SETS = [
       "ancora",
       "barieno",
       "binario",
-      "creino",
       "banco",
+      "creino",
       "biancore",
       "bianco",
       "coreani",
+      "erba",
       "baroni",
       "reni",
       "cabine",
@@ -169,6 +170,7 @@ const GAME_SETS = [
       "tragico",
       "giro",
       "georgica",
+      "reti",
       "torcia",
       "giocare",
       "regina",
@@ -297,7 +299,7 @@ const GAME_SETS = [
   },
   {
     // SET 7 - Lettere: S, P, E, R, A, N, Z, O
-    letters: ["S", "E", "N", "R", "A",  "Z", "O", "P"],
+    letters: ["S", "E", "N", "R", "A", "Z", "O", "P"],
     validWords: [
       "persona",
       "sperano",
@@ -434,6 +436,7 @@ export class GameManager extends Phaser.Scene {
 
   public canShoot: boolean = true;
   public isGameOver: boolean = false;
+  private isCelebrating: boolean = false;
 
   gameScene!: Game;
   speedBall: number = 800;
@@ -492,8 +495,8 @@ export class GameManager extends Phaser.Scene {
     this.mainContainer.add(deleteBtn);
 
     // CREA 8 BLOCCHI SOTTO GRID CON LETTERE
-    const blockSpacingX = 5;
-    const blockSpacingY = 5;
+    const blockSpacingX = 45;
+    const blockSpacingY = 35;
     const blocksPerRiga = 4;
     const paddingGridBlocks = 150;
 
@@ -508,7 +511,7 @@ export class GameManager extends Phaser.Scene {
       const block = this.add.image(0, 0, "block");
 
       block.setOrigin(0.5);
-      block.setScale(0.8); // BLOCCHI SCALATI
+      block.setScale(1.1); // BLOCCHI ESTERNI PIÙ GRANDI
 
       const row = Math.floor(i / blocksPerRiga);
       const col = i % blocksPerRiga;
@@ -525,7 +528,7 @@ export class GameManager extends Phaser.Scene {
       // AGGIUNGI LA LETTERA BIANCA SOPRA IL BLOCCO
       const letter = this.add.text(blockX, blockY, letters[i], {
         fontFamily: "Arial",
-        fontSize: "60px",
+        fontSize: "85px",
         color: "#ffffff",
         fontStyle: "bold",
       });
@@ -621,9 +624,17 @@ export class GameManager extends Phaser.Scene {
 
       // Se non abbiamo superato la soglia = è stato un CLICK, non un drag
       if (!isDragging) {
-        // GESTIONE CLICK: sposta il blocco alla grid se non è già piazzato
+        // GESTIONE CLICK:
         if (!blockData.isPlaced) {
+          // Se non è piazzato, sposta il blocco alla grid
           this.placeLetterOnGrid(blockData, index);
+        } else {
+          // Se è già piazzato, torna alla posizione originale
+          this.returnToOriginalPosition(blockData);
+          // Rimuovi dalla lista delle lettere piazzate
+          this.placedLetters = this.placedLetters.filter((p) => p.index !== index);
+          // Riposiziona le lettere rimanenti nella grid
+          this.repositionGridLetters();
         }
 
         return;
@@ -660,18 +671,15 @@ export class GameManager extends Phaser.Scene {
     },
     index: number,
   ) {
+    // Blocca durante la celebrazione
+    if (this.isCelebrating) {
+      this.returnToOriginalPosition(blockData);
+      return;
+    }
+
     // Rimuovi dalla posizione precedente se era già piazzata
     if (blockData.isPlaced) {
       this.placedLetters = this.placedLetters.filter((p) => p.index !== index);
-    }
-
-    // CONTROLLA SE LA GRID È PIENA (massimo 7 blocchi)
-    if (this.placedLetters.length >= 7) {
-      console.log("Grid piena! Massimo 7 lettere.");
-      // Rimanda il blocco alla posizione originale
-      this.returnToOriginalPosition(blockData);
-
-      return;
     }
 
     // Aggiungi alla lista delle lettere piazzate
@@ -694,8 +702,18 @@ export class GameManager extends Phaser.Scene {
   }
 
   private repositionGridLetters() {
-    const letterSpacing = 140; // Spazio tra le lettere nel grid
-    const totalWidth = (this.placedLetters.length - 1) * letterSpacing;
+    const count = this.placedLetters.length;
+
+    // Scala dinamica: più lettere più piccole
+    const baseScale = 1.2;
+    const minScale = 0.6;
+    const scaleFactor = Math.max(minScale, baseScale - (count - 1) * 0.08);
+
+    // Spaziatura dinamica in base alla scala
+    const baseSpacing = 180;
+    const letterSpacing = baseSpacing * scaleFactor;
+
+    const totalWidth = (count - 1) * letterSpacing;
     const startX = -totalWidth / 2;
 
     this.placedLetters.forEach((placed, i) => {
@@ -703,11 +721,26 @@ export class GameManager extends Phaser.Scene {
       const targetY = this.grid.y;
 
       this.tweens.add({
-        targets: [placed.block, placed.letter],
+        targets: placed.block,
+        x: targetX,
+        y: targetY,
+        scale: scaleFactor,
+        duration: 200,
+        ease: "Power2",
+      });
+
+      // Scala anche il font della lettera
+      const fontSize = Math.round(85 * scaleFactor);
+
+      this.tweens.add({
+        targets: placed.letter,
         x: targetX,
         y: targetY,
         duration: 200,
         ease: "Power2",
+        onUpdate: () => {
+          placed.letter.setFontSize(fontSize);
+        },
       });
     });
   }
@@ -720,10 +753,14 @@ export class GameManager extends Phaser.Scene {
     letterValue: string;
     isPlaced: boolean;
   }) {
-    // Suono quando si rimuove una lettera dalla grid
-    // if (blockData.isPlaced) {
-    //   this.gameScene.audioManager.playAudio(assetConf.audio.error);
-    // }
+    // Ferma eventuali tween in corso
+    this.tweens.killTweensOf(blockData.block);
+    this.tweens.killTweensOf(blockData.letter);
+
+    // Ripristina immediatamente scala e font originali
+    blockData.block.setScale(1.1);
+    blockData.letter.setScale(1); // Reset scale del Text
+    blockData.letter.setFontSize(85);
 
     this.tweens.add({
       targets: [blockData.block, blockData.letter],
@@ -784,6 +821,9 @@ export class GameManager extends Phaser.Scene {
 
   // Metodo opzionale per celebrare la parola trovata
   private celebrateWord(word: string) {
+    // Blocca l'aggiunta di nuove lettere durante la celebrazione
+    this.isCelebrating = true;
+
     // Suono di successo quando si trova una parola
     this.gameScene.audioManager.playAudio(assetConf.audio.success);
 
@@ -793,13 +833,23 @@ export class GameManager extends Phaser.Scene {
 
     // IMPORTANTE: Ferma tutti i tween in corso sui blocchi (es. repositionGridLetters)
     // e posiziona subito le lettere nella posizione corretta della grid
-    const letterSpacing = 140;
+    const baseScale = 1.2;
+    const minScale = 0.6;
+    const scaleFactor = Math.max(minScale, baseScale - (totalLetters - 1) * 0.065);
+    const baseSpacing = 180;
+    const letterSpacing = baseSpacing * scaleFactor;
     const totalWidth = (totalLetters - 1) * letterSpacing;
     const startX = -totalWidth / 2;
 
     lettersToAnimate.forEach((placed, i) => {
       this.tweens.killTweensOf(placed.block);
       this.tweens.killTweensOf(placed.letter);
+
+      // Forza lo scale corretto per TUTTI i blocchi (l'ultimo potrebbe non aver finito il tween)
+      placed.block.setScale(scaleFactor);
+      const fontSize = Math.round(85 * scaleFactor);
+      placed.letter.setFontSize(fontSize);
+
       // Posiziona immediatamente nella posizione corretta della grid
       const targetX = startX + i * letterSpacing;
       const targetY = this.grid.y;
@@ -807,13 +857,13 @@ export class GameManager extends Phaser.Scene {
       placed.letter.setPosition(targetX, targetY);
     });
 
-    // Salva le posizioni e scale originali (ora sono già nella posizione grid corretta)
+    // Salva le posizioni e scale (ora tutti hanno lo stesso scaleFactor)
     const originalData = lettersToAnimate.map((placed) => ({
       block: placed.block,
       letter: placed.letter,
       originalX: placed.block.x,
       originalY: placed.block.y,
-      originalScale: placed.block.scaleX,
+      originalScale: scaleFactor, // Usa scaleFactor, non block.scaleX
       originalDepth: placed.block.depth,
     }));
 
@@ -821,12 +871,14 @@ export class GameManager extends Phaser.Scene {
     const zoomDuration = 300; // Durata zoom
     const returnDuration = 200; // Durata ritorno
 
+    // Calcola tempo totale: ultimo delay + zoom + ritorno
+    const totalAnimationTime = (totalLetters - 1) * staggerDelay + zoomDuration + returnDuration;
+
     // Anima le lettere in sequenza con effetto elegante
     lettersToAnimate.forEach((placed, i) => {
       const delay = i * staggerDelay;
       const block = placed.block;
       const letter = placed.letter;
-      const isLastLetter = i === totalLetters - 1;
 
       // Porta in primo piano durante l'animazione
       this.mainContainer.bringToTop(block);
@@ -834,48 +886,89 @@ export class GameManager extends Phaser.Scene {
       block.setDepth(1000 + i);
       letter.setDepth(1001 + i);
 
-      // Salva posizione originale
-      const startX = originalData[i].originalX;
-      const startY = originalData[i].originalY;
-      const startScale = originalData[i].originalScale;
+      // Posizione nella grid
+      const posX = originalData[i].originalX;
+      const posY = originalData[i].originalY;
+      const blockScale = originalData[i].originalScale;
 
-      // Animazione elegante: zoom + movimento verso l'alto + glow
+      // Animazione blocco: zoom up poi ritorno
       this.tweens.add({
-        targets: [block, letter],
-        scale: startScale * 1.5,
-        y: startY - 50,
+        targets: block,
+        scale: blockScale * 1.5,
+        y: posY - 50,
         duration: zoomDuration,
         ease: "Back.easeOut",
+        delay: delay,
         onStart: () => {
-          // Aggiungi effetto glow con tint
-          block.setTint(0xffff00); // Giallo brillante
+          block.setTint(0xffff00);
         },
         onComplete: () => {
-          // Ritorna alla posizione originale con effetto smooth
           this.tweens.add({
-            targets: [block, letter],
-            scale: startScale,
-            x: startX,
-            y: startY,
+            targets: block,
+            scale: blockScale,
+            y: posY,
             duration: returnDuration,
             ease: "Power2.easeIn",
             onComplete: () => {
               block.clearTint();
-              // Ripristina depth originale
               block.setDepth(originalData[i].originalDepth);
-              letter.setDepth(originalData[i].originalDepth);
-
-              // Quando l'ultima lettera finisce, aspetta un po' prima di resettare
-              if (isLastLetter) {
-                this.time.delayedCall(500, () => {
-                  this.resetAllLetters();
-                });
-              }
             },
           });
         },
-        delay: delay,
       });
+
+      // Animazione lettera: segue il blocco (solo movimento Y)
+      this.tweens.add({
+        targets: letter,
+        y: posY - 50,
+        duration: zoomDuration,
+        ease: "Back.easeOut",
+        delay: delay,
+        onComplete: () => {
+          this.tweens.add({
+            targets: letter,
+            y: posY,
+            duration: returnDuration,
+            ease: "Power2.easeIn",
+            onComplete: () => {
+              letter.setDepth(originalData[i].originalDepth);
+            },
+          });
+        },
+      });
+    });
+
+    // Aspetta che TUTTE le animazioni finiscano + 1 secondo, poi resetta
+    this.time.delayedCall(totalAnimationTime + 1000, () => {
+      // Reset DIRETTO dei blocchi salvati (non usare resetAllLetters che potrebbe avere stato diverso)
+      lettersToAnimate.forEach((placed) => {
+        const blockData = this.letterBlocks[placed.index];
+
+        // Ferma tutti i tween
+        this.tweens.killTweensOf(blockData.block);
+        this.tweens.killTweensOf(blockData.letter);
+
+        // Forza dimensioni originali
+        blockData.block.setScale(1.1);
+        blockData.letter.setScale(1);
+        blockData.letter.setFontSize(85);
+
+        // Anima ritorno alla posizione originale
+        this.tweens.add({
+          targets: [blockData.block, blockData.letter],
+          x: blockData.originalX,
+          y: blockData.originalY,
+          duration: 200,
+          ease: "Power2",
+        });
+
+        blockData.isPlaced = false;
+      });
+
+      this.placedLetters = [];
+
+      // Riabilita l'aggiunta di lettere dopo la celebrazione
+      this.isCelebrating = false;
     });
   }
 
