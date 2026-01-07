@@ -48,8 +48,8 @@ interface WordSearchCell {
   x: number;
   y: number;
   letter: string;
-  text: Phaser.GameObjects.Text;
-  bg: Phaser.GameObjects.Rectangle;
+  text?: Phaser.GameObjects.Text;
+  bg?: Phaser.GameObjects.Rectangle;
   highlight?: Phaser.GameObjects.Container | Phaser.GameObjects.Graphics;
 }
 
@@ -64,10 +64,11 @@ export function centerContainer(
   const offsetY = targetY - bounds.centerY;
 
   container.getAll().forEach((child) => {
-    const obj = child as any;
+    // Type assertion per accedere alle proprietà x/y dei game objects
+    const obj = child as Phaser.GameObjects.GameObject & { x?: number; y?: number };
 
-    if (typeof obj.x === "number") obj.x += offsetX;
-    if (typeof obj.y === "number") obj.y += offsetY;
+    if (obj.x !== undefined && typeof obj.x === "number") obj.x += offsetX;
+    if (obj.y !== undefined && typeof obj.y === "number") obj.y += offsetY;
   });
 }
 
@@ -282,9 +283,7 @@ export class GameManager extends Phaser.Scene {
           x: 0,
           y: 0,
           letter,
-          text: null as any,
-          bg: null as any,
-        } as unknown as WordSearchCell;
+        };
       }),
     );
   }
@@ -941,11 +940,11 @@ export class GameManager extends Phaser.Scene {
     container.setAngle(angle);
 
     // Imposta il depth sul container, non sul graphics
-    container.setDepth(first.text.depth - 1);
+    container.setDepth(first.text!.depth - 1);
 
     cells.forEach((c) => {
       c.highlight = container;
-      c.text.setColor("#292929ff"); // lettere indovinate
+      c.text!.setColor("#292929ff"); // lettere indovinate
     });
   }
 
