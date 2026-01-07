@@ -9,6 +9,11 @@ import {Game} from "./game";
 
 const assetConf = PrendiOggettiAssetConf; //* Generalizzazione
 
+// Interfaccia per oggetti con proprietà isGood
+interface GameObjectWithGood extends Phaser.GameObjects.Image {
+  isGood: boolean;
+}
+
 export class GameManager extends Phaser.Scene {
   audioManager!: AudioManager;
 
@@ -42,7 +47,7 @@ export class GameManager extends Phaser.Scene {
 
   private goodObjects: string[] = ["obj0", "obj1"];
   private badObjects: string[] = ["enemy0"];
-  private activeObjects: Map<number, Phaser.GameObjects.Image> = new Map();
+  private activeObjects: Map<number, GameObjectWithGood> = new Map();
   private objectOffsets = {x: 0, y: -80}; // Offset dal centro finestra
   private objectScale = 1.0; // Scala degli oggetti
   private windowOpenDelay = 0; // Delay apertura finestra in millisecondi
@@ -172,7 +177,7 @@ export class GameManager extends Phaser.Scene {
         this.activeObjects.forEach((obj) => {
           if (obj.active) {
             totalActiveObjects++;
-            if ((obj as any).isGood) {
+            if (obj.isGood) {
               hasGoodObjects = true;
             } else {
               hasBadObjects = true;
@@ -211,7 +216,7 @@ export class GameManager extends Phaser.Scene {
     if (!this.windowsBusy[index]) return;
 
     // Penalità se oggetto buono non cliccato
-    if (obj && obj.active && (obj as any).isGood) {
+    if (obj && obj.active && obj.isGood) {
       this.badObjectEffectAnimation(obj);
       this.gameScene.uiManager.updateLives();
       this.gameScene.audioManager.playAudio(assetConf.audio.bad_obj);
@@ -237,12 +242,15 @@ export class GameManager extends Phaser.Scene {
 
     win.play("window_close");
 
-    win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (_: any, frame: any) => {
-      if (!halfFrameReached && frame.index <= totalFrames / 2) {
-        collider.setInteractive();
-        halfFrameReached = true;
-      }
-    });
+    win.on(
+      Phaser.Animations.Events.ANIMATION_UPDATE,
+      (_anim: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
+        if (!halfFrameReached && frame.index <= totalFrames / 2) {
+          collider.setInteractive();
+          halfFrameReached = true;
+        }
+      },
+    );
 
     win.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       win.setDepth(5);
@@ -280,7 +288,7 @@ export class GameManager extends Phaser.Scene {
       .setInteractive();
 
     // Store se è buono o cattivo sull'oggetto per riferimento futuro
-    (obj as any).isGood = isGood;
+    (obj as GameObjectWithGood).isGood = isGood;
 
     // Animazione scale: 0 -> 1.2 -> scala finale in ~1 secondo
     const targetScale = this.objectScale;
@@ -308,12 +316,12 @@ export class GameManager extends Phaser.Scene {
     obj.on("pointerdown", () => {
       if (isGood) {
         //console.log("GOOD!");
-        this.starsEffectAnimation(obj);
+        this.starsEffectAnimation(obj as GameObjectWithGood);
         this.gameScene.uiManager.updateScore(1);
         this.gameScene.audioManager.playAudio(assetConf.audio.good_obj);
       } else {
         //console.log("BAD!");
-        this.badObjectEffectAnimation(obj);
+        this.badObjectEffectAnimation(obj as GameObjectWithGood);
         this.gameScene.uiManager.updateLives();
         this.gameScene.audioManager.playAudio(assetConf.audio.bad_obj);
       }
@@ -329,7 +337,7 @@ export class GameManager extends Phaser.Scene {
     });
 
     // Salva riferimento
-    this.activeObjects.set(windowIndex, obj);
+    this.activeObjects.set(windowIndex, obj as GameObjectWithGood);
 
     // Se è enemy, attiva animazione flash rosso
     if (!isGood && objectKey === "enemy0") {
@@ -375,12 +383,15 @@ export class GameManager extends Phaser.Scene {
       win.play("window_open");
 
       // Event listener per disattivare collider al 50%
-      win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim: any, frame: any) => {
-        if (!halfFrameReached && frame.index >= totalFrames / 2) {
-          collider.disableInteractive();
-          halfFrameReached = true;
-        }
-      });
+      win.on(
+        Phaser.Animations.Events.ANIMATION_UPDATE,
+        (_anim: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
+          if (!halfFrameReached && frame.index >= totalFrames / 2) {
+            collider.disableInteractive();
+            halfFrameReached = true;
+          }
+        },
+      );
 
       win.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
         // Salva il timer per chiusura automatica dopo stayOpenDuration
@@ -558,12 +569,15 @@ export class GameManager extends Phaser.Scene {
       win.play("window_open");
 
       // Event listener per disattivare collider al 50%
-      win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim: any, frame: any) => {
-        if (!halfFrameReached && frame.index >= totalFrames / 2) {
-          collider.disableInteractive();
-          halfFrameReached = true;
-        }
-      });
+      win.on(
+        Phaser.Animations.Events.ANIMATION_UPDATE,
+        (_anim: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
+          if (!halfFrameReached && frame.index >= totalFrames / 2) {
+            collider.disableInteractive();
+            halfFrameReached = true;
+          }
+        },
+      );
 
       win.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
         // Genera un tempo random tra 500 e 2000 ms
@@ -611,12 +625,15 @@ export class GameManager extends Phaser.Scene {
     // Animazione chiusura
     win.play("window_close");
 
-    win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim: any, frame: any) => {
-      if (!halfFrameReached && frame.index <= totalFrames / 2) {
-        collider.setInteractive();
-        halfFrameReached = true;
-      }
-    });
+    win.on(
+      Phaser.Animations.Events.ANIMATION_UPDATE,
+      (_anim: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
+        if (!halfFrameReached && frame.index <= totalFrames / 2) {
+          collider.setInteractive();
+          halfFrameReached = true;
+        }
+      },
+    );
 
     win.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       // Ripristina depth normale finestra
@@ -890,7 +907,7 @@ export class GameManager extends Phaser.Scene {
   }
 
   //* Scopo: Avvia l'animazione delle stelle rosse nella posizione dell'oggetto cattivo
-  private badObjectEffectAnimation(obj: Phaser.GameObjects.Image) {
+  private badObjectEffectAnimation(obj: GameObjectWithGood) {
     const {x, y} = obj;
     const frameRate = 20;
     const offsetY = this.gameScene.setDynamicValueBasedOnScale(-50, -100);
@@ -973,7 +990,7 @@ export class GameManager extends Phaser.Scene {
   }
 
   //* Scopo: Avvia l'animazione delle stelle nella posizione dell'oggetto buono
-  private starsEffectAnimation(obj: Phaser.GameObjects.Image) {
+  private starsEffectAnimation(obj: GameObjectWithGood) {
     const {x, y} = obj;
     const frameRate = 20;
     const offsetY = this.gameScene.setDynamicValueBasedOnScale(-50, -100);
