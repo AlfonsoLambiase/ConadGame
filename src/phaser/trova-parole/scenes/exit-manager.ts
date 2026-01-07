@@ -83,10 +83,10 @@ export class ExitManager extends Phaser.Scene {
       }
     });
 
-      // Confirm button
+    // Confirm button
     const btnConfirm = this.add
       .image(267.5, 250, assetConf.image.btnConfirm) // horizontal
-      //.image(498, 194, GameDemo02AssetConf.image.btnConfirm) // vertical
+      //.image(498, 194, assetConf.image.btnConfirm) // vertical
       .setOrigin(0.5)
       .setDepth(102)
       .setInteractive({useHandCursor: true});

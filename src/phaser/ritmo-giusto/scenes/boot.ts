@@ -1,4 +1,4 @@
-
+/* eslint-disable no-console */
 import * as Phaser from "phaser";
 
 import {loadAudios, loadFonts, loadImages, loadSpritesheets} from "../shared/utils/load-assets";
@@ -29,8 +29,6 @@ export class Boot extends Phaser.Scene {
     if (!this.isInit) {
       this.sponsorLogo = data.sponsorLogo;
       this.isTesting = data.isTesting;
-      //this.isTesting = false; //! Attivare solo per test
-      console.log("this.isTesting:", this.isTesting);
       this.safeTop = data.safeTop || 0; //! notch Area
 
       this.registry.set("safeTop", this.safeTop); //! notch Area
@@ -40,7 +38,6 @@ export class Boot extends Phaser.Scene {
   }
 
   preload() {
-    console.log("Start Scene Boot");
     //console.log("Safe area top:", this.safeTop); //! notch Area
     this.#createBars();
 

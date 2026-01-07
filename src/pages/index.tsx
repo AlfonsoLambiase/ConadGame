@@ -7,11 +7,12 @@ const giochi = [
   // { title: "Tetris", path: "/giochi/tetris" },
   // { title: "Spara Neve", path: "/giochi/spara-neve" },
   // { title: "Raccogli Note", path: "/giochi/raccogli-note" },
+  // { title: "Impara Inglese", path: "/giochi/impara-inglese " },
   { title: "Collega Tutto", path: "/giochi/collega-tutto" },
   { title: "Crea Parole", path: "/giochi/crea-parole" },
   { title: "Ritmo Giusto", path: "/giochi/ritmo-giusto" },
   { title: "Trova Parole", path: "/giochi/trova-parole" },
-  { title: "Impara Inglese", path: "/giochi/impara-inglese " },
+  { title: "Prendi Oggetti", path: "/giochi/prendi-oggetti" },
 ];
 
 export default function Home() {

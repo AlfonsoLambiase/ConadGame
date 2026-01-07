@@ -1,4 +1,5 @@
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console */
 import Phaser from "phaser";
 
 import {AudioManager} from "../components/audioManager";
@@ -52,12 +53,6 @@ interface WordSearchCell {
   highlight?: Phaser.GameObjects.Container | Phaser.GameObjects.Graphics;
 }
 
-// Interfaccia per oggetti con proprietà x e y posizionabili
-interface PositionableGameObject extends Phaser.GameObjects.GameObject {
-  x?: number;
-  y?: number;
-}
-
 // PhaserUtils.ts
 export function centerContainer(
   container: Phaser.GameObjects.Container,
@@ -69,7 +64,7 @@ export function centerContainer(
   const offsetY = targetY - bounds.centerY;
 
   container.getAll().forEach((child) => {
-    const obj = child as PositionableGameObject;
+    const obj = child as any;
 
     if (typeof obj.x === "number") obj.x += offsetX;
     if (typeof obj.y === "number") obj.y += offsetY;
@@ -85,7 +80,8 @@ export class GameManager extends Phaser.Scene {
   // Configurazione layout
   private readonly PADDING_LEFT = 50;
   private readonly PADDING_RIGHT = 50;
-  private readonly GRID_SIZE = 9;
+  private readonly GRID_SIZE = 8;
+  private readonly BACKGROUND_SIZE = 900;
 
   private marginTop = 200;
   private cellSize!: number;
@@ -103,6 +99,8 @@ export class GameManager extends Phaser.Scene {
   private grid: WordSearchCell[][] = [];
   private wordsToFind: WordConfig[] = [];
   private foundWords: Set<string> = new Set();
+  private wordLabels: Phaser.GameObjects.Text[] = [];
+  private backgroundImage!: Phaser.GameObjects.Image;
 
   // Selezione parole
   private isSelecting: boolean = false;
@@ -150,6 +148,8 @@ export class GameManager extends Phaser.Scene {
   private SELECTION_LINE_ALPHA = 0.8;
 
   private FOUND_TEXT_COLOR = "#da5d29"; //* lettere trovate e marcate come check
+  // Container di highlights permanenti delle parole trovate
+  private wordHighlights: Phaser.GameObjects.Container[] = [];
 
   private labelsContainer!: Phaser.GameObjects.Container;
 
@@ -212,7 +212,7 @@ export class GameManager extends Phaser.Scene {
     this.gridStartX = this.PADDING_LEFT;
     this.gridStartY = this.marginTop;
 
-    console.log("Layout - Width:", this.gameWidth, "Cell Size:", this.cellSize);
+    //console.log("Layout - Width:", this.gameWidth, "Cell Size:", this.cellSize);
   }
 
   // Scopo: Genera il puzzle con parole casuali e griglia
@@ -282,8 +282,8 @@ export class GameManager extends Phaser.Scene {
           x: 0,
           y: 0,
           letter,
-          text: null as unknown,
-          bg: null as unknown,
+          text: null as any,
+          bg: null as any,
         } as unknown as WordSearchCell;
       }),
     );
@@ -424,6 +424,8 @@ export class GameManager extends Phaser.Scene {
     const bgWidth = this.cellSize * this.GRID_SIZE;
     const bgHeight = bgWidth; // Mantiene proporzioni quadrate
 
+    const bgX = this.gridStartX + bgWidth / 2;
+    const bgY = this.gridStartY + bgHeight / 2;
 
     // Crea un rettangolo come placeholder per lo sfondo
     // In un gioco reale, sostituire con: this.add.image(bgX, bgY, 'background_key')
@@ -470,8 +472,49 @@ export class GameManager extends Phaser.Scene {
         // Crea bordo cella (linea)
         const cellBorder = this.add.graphics();
 
+        //! Cancellare questo
+        // cellBorder.lineStyle(1, 0xcccccc, 0.5);
+        // cellBorder.strokeRect(topLeftX, topLeftY, this.cellSize, this.cellSize);
+        //! Sostituirlo per questo
         cellBorder.lineStyle(1, 0xcccccc, 0.5);
-        cellBorder.strokeRect(topLeftX, topLeftY, this.cellSize, this.cellSize);
+
+        // TOP
+        if (row > 0) {
+          cellBorder.strokeLineShape(
+            new Phaser.Geom.Line(topLeftX, topLeftY, topLeftX + this.cellSize, topLeftY),
+          );
+        }
+
+        // LEFT
+        if (col > 0) {
+          cellBorder.strokeLineShape(
+            new Phaser.Geom.Line(topLeftX, topLeftY, topLeftX, topLeftY + this.cellSize),
+          );
+        }
+
+        // RIGHT
+        if (col < this.GRID_SIZE - 1) {
+          cellBorder.strokeLineShape(
+            new Phaser.Geom.Line(
+              topLeftX + this.cellSize,
+              topLeftY,
+              topLeftX + this.cellSize,
+              topLeftY + this.cellSize,
+            ),
+          );
+        }
+
+        // BOTTOM
+        if (row < this.GRID_SIZE - 1) {
+          cellBorder.strokeLineShape(
+            new Phaser.Geom.Line(
+              topLeftX,
+              topLeftY + this.cellSize,
+              topLeftX + this.cellSize,
+              topLeftY + this.cellSize,
+            ),
+          );
+        }
 
         // Crea testo lettera
         const text = this.add.text(centerX, centerY, this.grid[row][col].letter, {
@@ -589,6 +632,7 @@ export class GameManager extends Phaser.Scene {
     }
 
     // Sceglie una parola casuale tra quelle non trovate
+    const wordToHint = unfoundWords[Math.floor(Math.random() * unfoundWords.length)];
 
     this.completeFirstAvailableWord();
     this.hintsRemaining--;
@@ -672,6 +716,8 @@ export class GameManager extends Phaser.Scene {
 
     this.selectionGraphics.clear();
     this.drawSelection();
+
+    this.gameScene.audioManager.playAudio(assetConf.audio.firstTouch);
   }
 
   // Scopo: Gestisce il movimento durante la selezione
@@ -795,8 +841,9 @@ export class GameManager extends Phaser.Scene {
 
     if (!foundConfig) {
       // Parola non trovata
-      console.log("Audio Parola sbagliata");
+      this.gameScene.audioManager.playAudio(assetConf.audio.wrongWord);
       this.selectionGraphics.clear();
+      console.log("Audio Parola sbagliata");
 
       return;
     }
@@ -818,6 +865,7 @@ export class GameManager extends Phaser.Scene {
     // Evidenzia la parola trovata sulla griglia
     this.highlightFoundWordCells(cells, foundConfig.color);
     this.foundWords.add(foundConfig.word);
+    this.gameScene.audioManager.playAudio(assetConf.audio.guessedWord);
     console.log("Audio Parola indovinata");
 
     // --- Aggiornamento etichetta nel container ---

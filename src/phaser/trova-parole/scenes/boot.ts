@@ -1,4 +1,4 @@
-
+/* eslint-disable no-console */
 import * as Phaser from "phaser";
 
 import {loadAudios, loadFonts, loadImages, loadSpritesheets} from "../shared/utils/load-assets";

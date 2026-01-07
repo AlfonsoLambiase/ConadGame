@@ -36,7 +36,7 @@ export class UIManager {
     this.#createBackgroundGame();
     this.#createBackgroundLogoAndLogo();
     this.#createContainerScore();
-    this.#createIconHelp();
+    //this.#createIconHelp();
     this.#createLives();
   }
 
@@ -70,7 +70,7 @@ export class UIManager {
       // logo
       const logo = this.scene.add.image(0, 0, "logo");
 
-      logo.setOrigin(0.5, 0.5).setScale(1.25); // centro pieno
+      logo.setOrigin(0.5, 0.5).setScale(1.0); // centro pieno
 
       // Posiziona il logo al centro del bgLogo
       logo.y = bgLogo.height / 2;
@@ -214,7 +214,6 @@ export class UIManager {
           // Controllo fine partita
           if (this.score >= this.maxScore) {
             this.gameScene.gameOver();
-            console.log("Hai vinto!");
           }
           //console.log("egistry.score: ", this.scene.registry.get(assetConf.registry.score));
         }
@@ -225,11 +224,13 @@ export class UIManager {
   // Inizializza le immagini delle vite
   #createLives(): void {
     const width = this.scene.scale.width;
-    const baseX = width + this.gameScene.setDynamicValueBasedOnScale(-200, -350); //* Modificare solo questo
+    const offsetX = this.gameScene.setDynamicValueBasedOnScale(150, 350);
+    const baseX = width - offsetX; //* Modificare solo questo
 
     //* Modificare pos Y (2-3)
     const height = 0;
-    const baseY = height + this.gameScene.setDynamicValueBasedOnScale(170, 330); //* Modificare solo questo
+    const offsetY = this.gameScene.setDynamicValueBasedOnScale(170, 330);
+    const baseY = height + offsetY; //* Modificare solo questo
 
     const spacingScale = this.gameScene.setDynamicValueBasedOnScale(0.5, 1);
 
@@ -274,7 +275,6 @@ export class UIManager {
     if (this.lives <= 0) {
       this.gameScene.gameOver();
     }
-    console.log("Add Audio lose life");
     //this.gameScene.audioManager.playAudio(assetConf.audio.bomb);
   }
 }

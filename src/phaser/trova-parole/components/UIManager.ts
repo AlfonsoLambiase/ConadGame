@@ -1,4 +1,4 @@
-
+/* eslint-disable no-console */
 import * as Phaser from "phaser";
 
 import {Game} from "../scenes/game";
@@ -22,6 +22,7 @@ export class UIManager {
   helpUsed: number = 0;
   differenceTryLimit: number = 1; // limite massimo tasto aiuto
   public iconHelp!: Phaser.GameObjects.Image;
+  private isHelpCoolingDown = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -64,7 +65,7 @@ export class UIManager {
       // logo
       const logo = this.scene.add.image(0, 0, "logo");
 
-      logo.setOrigin(0.5, 0.5).setScale(1.25); // centro pieno
+      logo.setOrigin(0.5, 0.5).setScale(1.0); // centro pieno
 
       // Posiziona il logo al centro del bgLogo
       logo.y = bgLogo.height / 2;
@@ -140,39 +141,107 @@ export class UIManager {
   }
 
   #createIconHelp() {
-    //* iconHelp
-    const iconHelp = this.scene.add.image(
-      this.gameScene.setDynamicValueBasedOnScale(20, 50) + this.ofssetX,
+    const x = this.gameScene.setDynamicValueBasedOnScale(70, 140) + this.ofssetX;
+
+    const y =
       this.gameScene.setDynamicValueBasedOnScale(
         this.scene.scale.height - 75,
         this.scene.scale.height - 170,
-      ) + this.ofssetY,
-      assetConf.image.iconHelp,
-    );
+      ) + this.ofssetY;
 
-    iconHelp.setOrigin(0, 0.5);
-    iconHelp.setDepth(0);
-    iconHelp.setScale(this.gameScene.setDynamicValueBasedOnScale(0.5, 1.0));
-    iconHelp.setInteractive();
+    const scale = this.gameScene.setDynamicValueBasedOnScale(0.5, 1.0);
+
+    this.helpUsed = 0; // Inizializza qui
+    this.isHelpCoolingDown = false; // Inizializza qui
+
+    // === ICON BG (COOLDOWN) ===
+    const iconHelpBG = this.scene.add.image(x, y, assetConf.image.iconHelpBG);
+
+    iconHelpBG.setOrigin(0.5, 0.5).setScale(scale).setDepth(-1).setVisible(false);
+
+    // === GRAPHICS PER MASK ===
+    const maskGraphics = this.scene.add.graphics();
+
+    maskGraphics.setVisible(false);
+
+    const mask = maskGraphics.createGeometryMask();
+
+    iconHelpBG.setMask(mask);
+
+    // === ICON HELP ===
+    const iconHelp = this.scene.add.image(x, y, assetConf.image.iconHelp);
+
+    iconHelp.setOrigin(0.5, 0.5).setScale(scale).setDepth(0).setInteractive({useHandCursor: true});
+
     this.iconHelp = iconHelp;
-    this.iconHelp.setPosition(iconHelp.x, iconHelp.y);
 
-    this.helpUsed = 0;
+    // Centro reale per la mask
+    const getCenter = () => ({
+      cx: iconHelp.x,
+      cy: iconHelp.y,
+      r: Math.min(iconHelp.displayWidth, iconHelp.displayHeight) * 0.5,
+    });
 
     iconHelp.on("pointerdown", () => {
-      if (this.helpUsed >= this.differenceTryLimit) return;
+      if (this.isHelpCoolingDown) return;
+      if (this.helpUsed >= 6) return;
 
-      console.log("iconHelp clicked, aggiungere: audio e metodo di cosa deve fare");
-      console.log("Audio Icon Help");
-      this.gameScene.gameManager.useHint();
+      console.log("Clicked Icon Help: ", this.helpUsed);
 
       this.helpUsed++;
 
-      if (this.helpUsed === this.differenceTryLimit) {
-        iconHelp.disableInteractive();
-        iconHelp.setAlpha(0.59);
-        iconHelp.setTint(0x999999);
-      }
+      this.gameScene.audioManager.playAudio(assetConf.audio.help);
+      this.gameScene.gameManager.useHint();
+
+      this.isHelpCoolingDown = true;
+
+      iconHelp.disableInteractive();
+      iconHelp.setAlpha(0.6);
+      iconHelp.setTint(0x999999);
+
+      if (this.helpUsed > 5) return;
+
+      iconHelpBG.setVisible(true);
+      maskGraphics.clear();
+
+      const cooldownDuration = 20000;
+      const progress = {angle: 0};
+
+      const {cx, cy, r} = getCenter();
+
+      this.scene.tweens.add({
+        targets: progress,
+        angle: 360,
+        duration: cooldownDuration,
+        ease: "Linear",
+        onUpdate: () => {
+          maskGraphics.clear();
+          maskGraphics.fillStyle(0xffffff, 1);
+
+          maskGraphics.beginPath();
+          maskGraphics.moveTo(cx, cy);
+          maskGraphics.arc(
+            cx,
+            cy,
+            r,
+            Phaser.Math.DegToRad(-90),
+            Phaser.Math.DegToRad(progress.angle - 90),
+            false,
+          );
+          maskGraphics.closePath();
+          maskGraphics.fillPath();
+        },
+        onComplete: () => {
+          maskGraphics.clear();
+          iconHelpBG.setVisible(false);
+
+          this.isHelpCoolingDown = false;
+
+          iconHelp.clearTint();
+          iconHelp.setAlpha(1);
+          iconHelp.setInteractive({useHandCursor: true});
+        },
+      });
     });
   }
 

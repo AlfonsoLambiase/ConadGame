@@ -1,4 +1,5 @@
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console */
 
 import Phaser from "phaser";
 
@@ -35,7 +36,7 @@ export class Game extends Phaser.Scene {
   }
 
   init() {
-    console.log("Start Scene Game");
+    //console.log("Start Scene Game");
   }
 
   create() {
@@ -64,8 +65,6 @@ export class Game extends Phaser.Scene {
     // this.timerManager.startTimer();
 
     this.starsEffectManager = new StarsEffectManager(this);
-
-    this.addLogoPhaser();
   }
 
   private initializeGameManager() {
@@ -81,14 +80,6 @@ export class Game extends Phaser.Scene {
 
     // Ottieni riferimento al manager
     this.gameManager = this.scene.get(assetConf.scene.gameManager) as GameManager;
-  }
-
-  // //! Solo per test
-  addLogoPhaser() {
-    // logoPhaser
-    const logoPhaser = this.add.image(this.scale.width - 50, this.scale.height - 50, "logoPhaser"); // metodo per riprendere le variabili dalla page.tsx del game.
-
-    logoPhaser.setOrigin(0.5).setDepth(-1).setScale(this.setDynamicValueBasedOnScale(0.7, 1.0));
   }
 
   getGlobalScale(): number {

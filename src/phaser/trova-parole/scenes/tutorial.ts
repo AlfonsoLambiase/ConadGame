@@ -1,4 +1,4 @@
-
+/* eslint-disable no-console */
 import {TrovaParoleAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = TrovaParoleAssetConf; //* Generalizzazione

@@ -28,7 +28,6 @@ export class GameManager extends Phaser.Scene {
   public isGameOver: boolean = false;
 
   gameScene!: Game;
-  speedBall: number = 800;
   timeAddNewRow: number = 20000;
 
   // Properties
@@ -149,7 +148,7 @@ export class GameManager extends Phaser.Scene {
   }
 
   private setupParameters(): void {
-    this.noteSpeed = this.gameScene.setDynamicValueBasedOnScale(250, 500);
+    this.noteSpeed = this.gameScene.setDynamicValueBasedOnScale(200, 400);
     this.noteStartY = this.gameScene.setDynamicValueBasedOnScale(120 + 20, 790 + 20);
     this.laneOffsetStart = this.gameScene.setDynamicValueBasedOnScale(-110, -90);
     this.laneOffsetEnd = this.gameScene.setDynamicValueBasedOnScale(60, 400);

@@ -15,6 +15,10 @@ export const TrovaParoleAssetConf = {
     help: "help",
     endWin: "endWin",
     endFailed: "endFailed",
+
+    firstTouch: "firstTouch",
+    guessedWord: "guessedWord",
+    wrongWord: "wrongWord",
   } as const,
   image: {
     // for timerManager
@@ -26,6 +30,7 @@ export const TrovaParoleAssetConf = {
     backgroundScore: "backgroundScore",
     logo: "logo",
     iconHelp: "iconHelp",
+    iconHelpBG: "iconHelpBG",
     iconScore: "iconScore",
     iconLive: "iconLive",
     logoPhaser: "logoPhaser", //! Solo per test
