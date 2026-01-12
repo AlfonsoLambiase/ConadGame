@@ -235,7 +235,7 @@ export class GameManager extends Phaser.Scene {
 
     win.play("window_close");
 
-    win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (_: any, frame: any) => {
+    win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (_: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
       if (!halfFrameReached && frame.index <= totalFrames / 2) {
         collider.setInteractive();
         halfFrameReached = true;
@@ -373,7 +373,7 @@ export class GameManager extends Phaser.Scene {
       win.play("window_open");
 
       // Event listener per disattivare collider al 50%
-      win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim: any, frame: any) => {
+      win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
         if (!halfFrameReached && frame.index >= totalFrames / 2) {
           collider.disableInteractive();
           halfFrameReached = true;
@@ -556,7 +556,7 @@ export class GameManager extends Phaser.Scene {
       win.play("window_open");
 
       // Event listener per disattivare collider al 50%
-      win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim: any, frame: any) => {
+      win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
         if (!halfFrameReached && frame.index >= totalFrames / 2) {
           collider.disableInteractive();
           halfFrameReached = true;
@@ -609,7 +609,7 @@ export class GameManager extends Phaser.Scene {
     // Animazione chiusura
     win.play("window_close");
 
-    win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim: any, frame: any) => {
+    win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
       if (!halfFrameReached && frame.index <= totalFrames / 2) {
         collider.setInteractive();
         halfFrameReached = true;
