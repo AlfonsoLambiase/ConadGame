@@ -258,6 +258,13 @@ export class GameManager extends Phaser.Scene {
 
     // Solo se non c'è NESSUNA coppia collegabile, mostra la popup
     console.log("Creata popup");
+
+    // Disabilita il pulsante di aiuto durante la popup
+    const helpButton = this.children.getByName("helpButton") as Phaser.GameObjects.Image;
+    if (helpButton) {
+      helpButton.setAlpha(0.4).disableInteractive();
+    }
+
     const {width, height} = this.scale;
 
     const overlay = this.add.graphics();
@@ -273,10 +280,15 @@ export class GameManager extends Phaser.Scene {
     popup.setOrigin(0.5); // Centro perfetto
     popup.setScale(this.gameScene.setDynamicValueBasedOnScale(0.5, 1.1)); // Scala leggermente aumentata
     popup.setDepth(99);
-    // Dopo 2 secondi lo rimuovi
+    // Dopo 2 secondi lo rimuovi e riabilita il pulsante
     this.time.delayedCall(2300, () => {
       popup.destroy();
       overlay.destroy();
+
+      // Riabilita il pulsante di aiuto
+      if (helpButton) {
+        helpButton.setAlpha(1).setInteractive({useHandCursor: true});
+      }
     });
     console.warn("Nessuna coppia può essere collegata!");
   }

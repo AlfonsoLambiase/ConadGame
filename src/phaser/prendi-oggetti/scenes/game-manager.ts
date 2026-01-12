@@ -19,7 +19,7 @@ export class GameManager extends Phaser.Scene {
 
   private gameWidth!: number;
   private gameHeight!: number;
-
+  
   public canShoot: boolean = true;
   public isGameOver: boolean = false;
 
