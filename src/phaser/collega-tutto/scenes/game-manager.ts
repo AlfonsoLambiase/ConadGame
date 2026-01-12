@@ -96,33 +96,41 @@ export class GameManager extends Phaser.Scene {
     if (this.isBlockOccupied(nearestBlock)) return false;
     if (this.pathBlocks.some((b) => b.x === nearestBlock.x && b.y === nearestBlock.y)) return false;
 
+    if (!this.checkIntermediateBlocks(nearestBlock, lastBlock)) return false;
+
+    return true;
+  }
+
+  // CONTROLLA CHE I BLOCCHI INTERMEDI (tra lastBlock e nearestBlock) SIANO LIBERI
+  private checkIntermediateBlocks(
+    nearestBlock: Phaser.GameObjects.Image,
+    lastBlock: Phaser.GameObjects.Image,
+  ): boolean {
     const dx = Math.abs(nearestBlock.x - lastBlock.x);
     const dy = Math.abs(nearestBlock.y - lastBlock.y);
     const blockDist = Math.max(dx, dy);
 
-    if (blockDist === 0) return false;
+    if (blockDist <= 1) return true; // nessun blocco intermedio
 
-    if (blockDist > 1) {
-      if (dx > dy) {
-        const step = nearestBlock.x > lastBlock.x ? 1 : -1;
+    if (dx > dy) {
+      const step = nearestBlock.x > lastBlock.x ? 1 : -1;
 
-        for (let x = lastBlock.x + step; x !== nearestBlock.x; x += step) {
-          const intermediate = this.gridBlocks.flat().find((b) => b.x === x && b.y === lastBlock.y);
+      for (let x = lastBlock.x + step; x !== nearestBlock.x; x += step) {
+        const intermediate = this.gridBlocks.flat().find((b) => b.x === x && b.y === lastBlock.y);
 
-          if (intermediate && this.isBlockOccupied(intermediate)) return false;
-          if (intermediate && this.pathBlocks.some((pb) => pb.x === x && pb.y === lastBlock.y))
-            return false;
-        }
-      } else if (dy > dx) {
-        const step = nearestBlock.y > lastBlock.y ? 1 : -1;
+        if (intermediate && this.isBlockOccupied(intermediate)) return false;
+        if (intermediate && this.pathBlocks.some((pb) => pb.x === x && pb.y === lastBlock.y))
+          return false;
+      }
+    } else if (dy > dx) {
+      const step = nearestBlock.y > lastBlock.y ? 1 : -1;
 
-        for (let y = lastBlock.y + step; y !== nearestBlock.y; y += step) {
-          const intermediate = this.gridBlocks.flat().find((b) => b.x === lastBlock.x && b.y === y);
+      for (let y = lastBlock.y + step; y !== nearestBlock.y; y += step) {
+        const intermediate = this.gridBlocks.flat().find((b) => b.x === lastBlock.x && b.y === y);
 
-          if (intermediate && this.isBlockOccupied(intermediate)) return false;
-          if (intermediate && this.pathBlocks.some((pb) => pb.x === lastBlock.x && pb.y === y))
-            return false;
-        }
+        if (intermediate && this.isBlockOccupied(intermediate)) return false;
+        if (intermediate && this.pathBlocks.some((pb) => pb.x === lastBlock.x && pb.y === y))
+          return false;
       }
     }
 
@@ -598,14 +606,18 @@ export class GameManager extends Phaser.Scene {
 
         if (!virtualBlock) return;
 
-        // Controllo blocco occupato da pezzi o da linee esistenti
-        const isBlockOccupied =
+        // PRIMA DI TUTTO: Controlla che i blocchi INTERMEDI siano liberi
+        // (questo previene che la linea passi attraverso oggetti o altre linee)
+        if (!this.checkIntermediateBlocks(virtualBlock, lastBlock)) return;
+
+        // Controllo blocco occupato da linee esistenti
+        const isLineOnBlock =
           virtualBlock.getData("occupied") ||
           this.userLines.some((line) =>
             line.pathBlocks.some((b) => b.x === virtualBlock.x && b.y === virtualBlock.y),
           );
 
-        if (isBlockOccupied) return; // blocco non valido
+        if (isLineOnBlock) return; // blocco occupato da linea esistente
 
         const isOnMatchedObj =
           matchedObjBlock &&
@@ -628,12 +640,10 @@ export class GameManager extends Phaser.Scene {
             );
           });
 
-        // Se è un oggetto sbagliato, permetti di entrare nel blocco
+        // Se è un oggetto sbagliato, permetti di entrare nel blocco e lampeggia
         if (wrongObj) {
-          // Aggiungi il blocco al percorso
           this.pathBlocks.push(virtualBlock);
 
-          // Disegna la linea morbida fino all'oggetto sbagliato
           const color = this.objectColors[this.startObj.texture.key] ?? 0xff0000;
           const lineWidth = this.gameScene.setDynamicValueBasedOnScale(20, 80);
           const points = [
@@ -643,18 +653,25 @@ export class GameManager extends Phaser.Scene {
 
           this.drawSmoothLine(this.currentLineObj, points, color, lineWidth);
 
-          // Audio coppia sbagliata
           console.log("audio coppia sbagliata");
           this.gameScene.audioManager.playAudio(assetConf.audio.error);
 
-          // Linea arrivata su oggetto sbagliato: lampeggia e cancella
           this.blinkLine();
 
           return;
         }
 
+        // Controlla se il blocco contiene un altro oggetto (non startObj, non matchedObj)
+        // La linea NON può passare attraverso altri oggetti
         if (!isOnMatchedObj) {
-          if (!this.isValidNextMove(virtualBlock, lastBlock)) return;
+          const hasOtherObject = this.gridObjects.some((obj) => {
+            if (!obj || obj === this.startObj) return false;
+            const objBlock = this.getNearestBlock(obj.x, obj.y);
+            return objBlock && objBlock.x === virtualBlock.x && objBlock.y === virtualBlock.y;
+          });
+
+          if (hasOtherObject) return; // blocco occupato da altro oggetto
+          if (this.pathBlocks.some((b) => b.x === virtualBlock.x && b.y === virtualBlock.y)) return;
         } else {
           // Anche sul matchedObj, richiedi almeno due blocchi di percorso prima di connettere
           if (this.pathBlocks.length < 2) return;
