@@ -18,7 +18,7 @@ const giochi = [
 export default function Home() {
   return (
     <div className="min-h-screen p-10 flex flex-col items-center gap-10 bg-gray-100">
-      <h1 className="text-3xl font-bold text-black">DEMO GIOCHI v1.0.0</h1>
+      <h1 className="text-3xl font-bold text-black">DEMO GIOCHI v1.0.1</h1>
       <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {giochi.map((gioco) => (
           <li
