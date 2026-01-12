@@ -204,6 +204,8 @@ export class UIManager extends Phaser.Scene {
 
           // Controllo fine partita
           if (this.score >= this.maxScore) {
+            this.score = this.maxScore;
+            this.gameScene.gameManager.disableGameInput();
             this.gameScene.gameOver();
           }
           //console.log("egistry.score: ", this.scene.registry.get(assetConf.registry.score));

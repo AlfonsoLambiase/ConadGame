@@ -19,7 +19,7 @@ export class Outro extends Phaser.Scene {
       this.imageKey = `end${resultStatus}`;
     }
 
-    this.time.delayedCall(
+  this.time.delayedCall(
       3000,
       () => {
         // redirect a root della app

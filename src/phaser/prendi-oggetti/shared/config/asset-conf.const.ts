@@ -142,6 +142,14 @@ export const PrendiOggettiAssetConf = {
       frameHeight: 256,
       key: "animLive",
     },
+
+    // for brokenHeartAnim
+    animBrokenHeart: {
+      // 27
+      frameWidth: 128,
+      frameHeight: 104,
+      key: "animBrokenHeart",
+    },
   },
   keyAnim: {
     // for starsEffect

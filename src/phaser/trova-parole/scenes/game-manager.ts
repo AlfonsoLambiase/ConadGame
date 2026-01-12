@@ -63,12 +63,19 @@ export function centerContainer(
   const offsetX = targetX - bounds.centerX;
   const offsetY = targetY - bounds.centerY;
 
-  container.getAll().forEach((child) => {
-    // Type assertion per accedere alle proprietà x/y dei game objects
-    const obj = child as Phaser.GameObjects.GameObject & { x?: number; y?: number };
+  // container.getAll().forEach((child) => {
+  //   const obj = child as any;
 
-    if (obj.x !== undefined && typeof obj.x === "number") obj.x += offsetX;
-    if (obj.y !== undefined && typeof obj.y === "number") obj.y += offsetY;
+  //   if (typeof obj.x === "number") obj.x += offsetX;
+  //   if (typeof obj.y === "number") obj.y += offsetY;
+  // });
+  container.getAll().forEach((child) => {
+    if ("x" in child && "y" in child) {
+      const obj = child as Phaser.GameObjects.GameObject & {x: number; y: number};
+
+      obj.x += offsetX;
+      obj.y += offsetY;
+    }
   });
 }
 
@@ -283,7 +290,9 @@ export class GameManager extends Phaser.Scene {
           x: 0,
           y: 0,
           letter,
-        };
+          // text: null as any,
+          // bg: null as any,
+        } as unknown as WordSearchCell;
       }),
     );
   }
@@ -443,7 +452,7 @@ export class GameManager extends Phaser.Scene {
 
   // Scopo: Crea la griglia di celle con lettere
   private createGrid(): void {
-    const fontSize = Math.floor(this.cellSize * 0.5);
+    const fontSize = Math.floor(this.cellSize * 0.59);
 
     for (let row = 0; row < this.GRID_SIZE; row++) {
       for (let col = 0; col < this.GRID_SIZE; col++) {
@@ -471,10 +480,6 @@ export class GameManager extends Phaser.Scene {
         // Crea bordo cella (linea)
         const cellBorder = this.add.graphics();
 
-        //! Cancellare questo
-        // cellBorder.lineStyle(1, 0xcccccc, 0.5);
-        // cellBorder.strokeRect(topLeftX, topLeftY, this.cellSize, this.cellSize);
-        //! Sostituirlo per questo
         cellBorder.lineStyle(1, 0xcccccc, 0.5);
 
         // TOP
@@ -944,7 +949,7 @@ export class GameManager extends Phaser.Scene {
 
     cells.forEach((c) => {
       c.highlight = container;
-      c.text!.setColor("#292929ff"); // lettere indovinate
+      c.text?.setColor("#292929ff"); // lettere indovinate
     });
   }
 

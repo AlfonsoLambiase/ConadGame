@@ -5,7 +5,6 @@ import {Game} from "./game";
 
 import {EventBus} from "@/phaser/EventBus";
 import {PhaserEvents} from "@/lib/phaser-events";
-import router from "next/router";
 
 const assetConf = PrendiOggettiAssetConf;
 
@@ -117,7 +116,7 @@ export class ExitManager extends Phaser.Scene {
       const game = this.scene.get(assetConf.scene.game) as Game;
 
       if (game.theme) game.theme.stop();
-      router.push("/");
+      EventBus.emit(PhaserEvents.EXIT_GAME);
     });
 
     // Add elements to the popup container

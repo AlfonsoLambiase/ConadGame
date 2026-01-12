@@ -174,25 +174,40 @@ export class UIManager {
     });
   }
 
-  //* Scopo: Aggiunge punti al punteggio totale in base al numero di bolle scoppiate.
+  //* Scopo: Aggiunge punti al punteggio totale senza superare maxScore
   updateScore(points: number) {
     const increment = 1;
-    const repeatCount = points;
-    const finalScore = this.score + points;
+    const timeDelay = 50;
+
+    const previousScore = this.score;
+
+    // CLAMP del punteggio finale
+    const finalScore = Math.min(this.score + points, this.maxScore);
+
+    // Punti reali da animare
+    const delta = finalScore - previousScore;
+
+    // Se non ci sono punti da aggiungere, esci
+    if (delta <= 0) return;
 
     this.score = finalScore;
 
     let steps = 0;
-    const timeDelay = 50;
 
     this.scene.time.addEvent({
       delay: timeDelay,
-      repeat: repeatCount - 1,
+      repeat: delta - 1,
       callback: () => {
         this.displayedScore += increment;
-        this.scoreText.setText(`${this.displayedScore.toString()} / ${this.maxScore}`);
 
-        // Reset scala prima del tween per evitare accumulo
+        // Sicurezza extra lato UI
+        if (this.displayedScore > this.maxScore) {
+          this.displayedScore = this.maxScore;
+        }
+
+        this.scoreText.setText(`${this.displayedScore} / ${this.maxScore}`);
+
+        // Reset scala prima del tween
         this.scoreText.setScale(1.3);
 
         this.scene.tweens.add({
@@ -204,18 +219,18 @@ export class UIManager {
         });
 
         steps++;
-        if (steps >= repeatCount) {
-          // Aggiorna il registry con il punteggio finale
-          this.scene.registry.set(assetConf.registry.score, finalScore);
 
-          // Assicura la scala originale alla fine
+        if (steps >= delta) {
+          // Registry sempre coerente
+          this.scene.registry.set(assetConf.registry.score, this.score);
+
           this.scoreText.setScale(1.3);
 
-          // Controllo fine partita
+          // Fine partita
           if (this.score >= this.maxScore) {
+            this.score = this.maxScore;
             this.gameScene.gameOver();
           }
-          //console.log("egistry.score: ", this.scene.registry.get(assetConf.registry.score));
         }
       },
     });

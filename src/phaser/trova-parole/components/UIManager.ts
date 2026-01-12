@@ -204,7 +204,7 @@ export class UIManager {
       iconHelpBG.setVisible(true);
       maskGraphics.clear();
 
-      const cooldownDuration = 20000;
+      const cooldownDuration = 10000;
       const progress = {angle: 0};
 
       const {cx, cy, r} = getCenter();

@@ -59,7 +59,7 @@ export class GameManager extends Phaser.Scene {
   private noteDestroyOffset: number = 50; // Pixel oltre la fine dello schermo prima di distruggere le note
 
   // VARIABILI CENTRALIZZATE
-  private targetZoneWidthMultiplier: number = 3;
+  private targetZoneWidthMultiplier: number = 5; //! Larghezza laterale per il touch.
   private targetZoneHeight: number = 100;
   private noteWidth: number = 80;
   private offsetYBaseButtons: number = 30;
@@ -85,9 +85,9 @@ export class GameManager extends Phaser.Scene {
   private noteTextures = ["obj0", "obj1", "obj2", "obj3"]; // Array di immagini
   private shadowOffsetY = 70; // quanto sotto appare l'ombra
 
-  private showHitZone: boolean = false; // se true la zona collisione è visibile
+  private showHitZone: boolean = false; //! Attivare per rendere visibile la zona di collisione.
   private hitZoneGraphics!: Phaser.GameObjects.Graphics;
-  private hitWindow: number = 150; //! distanza effettiva per esplodere le note verticale (hit). Dinamica
+  private hitWindow: number = 150; //! distanza effettiva per esplodere le note verticale (hit). Dinamica. Parametro importante
 
   private hitImages: Phaser.GameObjects.Image[] = []; // array per le immagini hit
 
@@ -164,7 +164,8 @@ export class GameManager extends Phaser.Scene {
 
     this.shadowOffsetY = this.gameScene.setDynamicValueBasedOnScale(70, 100);
 
-    this.hitWindow = this.gameScene.setDynamicValueBasedOnScale(100, 200);
+    //! distanza effettiva per esplodere le note verticale (hit). Dinamica. Parametro importante
+    this.hitWindow = this.gameScene.setDynamicValueBasedOnScale(150, 350);
 
     // Setup keyboard inputs
     if (this.input.keyboard) {
@@ -199,7 +200,7 @@ export class GameManager extends Phaser.Scene {
 
     // Create target zone
     this.targetZone = this.add.graphics();
-    this.targetZone.lineStyle(3, 0x00ff00, 0); //! alpha
+    this.targetZone.lineStyle(3, 0x00ff00, 0.0); //! alpha
     const centerX = this.gameWidth / 2;
 
     this.targetZone.strokeRect(
@@ -275,7 +276,7 @@ export class GameManager extends Phaser.Scene {
         zoneWidth,
         zoneHeight,
         i === 0 ? 0xff0000 : i === 1 ? 0x00ff00 : 0x0000ff,
-        0.0, // parametro alpha
+        0.0, //! Parametro alpha. Zone cliccabili per il touch che attiva il bottone.
       );
 
       zone.setDepth(50);
@@ -316,7 +317,7 @@ export class GameManager extends Phaser.Scene {
 
   private drawLaneIndicator(graphics: Phaser.GameObjects.Graphics, laneIndex: number): void {
     graphics.clear();
-    graphics.lineStyle(2, 0x444444, 0.0); //! log visivo, indica la linea percorsa nella corsia destra e sinistra mettere a 1.0 per test l'alpha
+    graphics.lineStyle(2, 0x444444, 0.0); //! Log visivo, indica la linea percorsa delle corsie destra, centrale e sinistra. Mettere a 1.0 per test l'alpha
 
     // Disegna linea della corsia
     const startX = this.getLaneXPosition(laneIndex, this.noteStartY);

@@ -22,10 +22,7 @@ export class Outro extends Phaser.Scene {
     this.time.delayedCall(
       3000,
       () => {
-           // redirect a root della app
-        if (typeof window !== "undefined") {
-          window.location.href = "/";
-        }
+        EventBus.emit(PhaserEvents.END_GAME);
       },
       [],
       this,
