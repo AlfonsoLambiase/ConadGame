@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import {ImparaIngleseAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = ImparaIngleseAssetConf; //* Generalizzazione

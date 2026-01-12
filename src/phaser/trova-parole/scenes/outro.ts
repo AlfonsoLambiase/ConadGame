@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
+
 import {TrovaParoleAssetConf} from "../shared/config/asset-conf.const";
 
 import {PhaserEvents} from "@/lib/phaser-events";

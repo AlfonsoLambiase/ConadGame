@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
+
 import Phaser from "phaser";
 
 import {AudioManager} from "../components/audioManager";

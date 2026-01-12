@@ -101,7 +101,7 @@ export default function RitmoGiustoGame({
 
       cleanGameMemory();
     };
-  }, []);
+  }, [isTesting, setExitGame, setLevelComplete]);
 
   function cleanGameMemory() {
     if (gameInstance.current) {

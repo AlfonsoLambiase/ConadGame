@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import {CreaParoleAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = CreaParoleAssetConf; //* Generalizzazione

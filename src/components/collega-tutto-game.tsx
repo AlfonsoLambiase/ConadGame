@@ -104,7 +104,7 @@ export default function CollegaTuttoGame({
 
       cleanGameMemory();
     };
-  }, []);
+  }, [isTesting, setExitGame, setLevelComplete]);
 
   function cleanGameMemory() {
     if (gameInstance.current) {

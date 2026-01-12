@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import {RitmoGiustoAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = RitmoGiustoAssetConf; //* Generalizzazione

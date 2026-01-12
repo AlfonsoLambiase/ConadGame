@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import {PrendiOggettiAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = PrendiOggettiAssetConf; //* Generalizzazione

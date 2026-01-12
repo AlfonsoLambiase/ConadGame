@@ -99,7 +99,7 @@ export default function TrovaParoleGame({
 
       cleanGameMemory();
     };
-  }, []);
+  }, [isTesting, setExitGame, setLevelComplete]);
 
   function cleanGameMemory() {
     if (gameInstance.current) {

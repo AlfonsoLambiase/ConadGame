@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import Phaser from "phaser";
 
 import {UIManager} from "../components/UIManager";

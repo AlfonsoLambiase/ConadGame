@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import {CollegaTuttoAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = CollegaTuttoAssetConf; //* Generalizzazione

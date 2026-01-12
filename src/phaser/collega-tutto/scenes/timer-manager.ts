@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import {CollegaTuttoAssetConf} from "../shared/config/asset-conf.const";
 
 import {Game} from "./game";
