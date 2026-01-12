@@ -208,6 +208,13 @@ export class GameManager extends Phaser.Scene {
     if (!win || !collider) return;
     if (!this.windowsBusy[index]) return;
 
+    // 🔴 BLOCCO IMMEDIATO INPUT
+    collider.disableInteractive();
+
+    if (obj && obj.input) {
+      obj.disableInteractive();
+    }
+
     // Penalità se oggetto buono non cliccato
     if (obj && obj.active && (obj as GameObjectWithGood).isGood) {
       this.badObjectEffectAnimation(obj);
@@ -217,7 +224,7 @@ export class GameManager extends Phaser.Scene {
 
     this.gameScene.audioManager.playAudio(assetConf.audio.open_close_window);
 
-    // Cancella timer finestra
+    // Cancella timer finestra (se esiste)
     const timer = this.windowTimers.get(index);
 
     if (timer) {
@@ -225,29 +232,24 @@ export class GameManager extends Phaser.Scene {
       this.windowTimers.delete(index);
     }
 
+    // Chiude e rimuove l’oggetto visivamente
     this.closeObjectInWindow(index);
 
+    // Finestra sopra tutto durante la chiusura
     win.removeAllListeners();
     win.setDepth(10);
 
-    const totalFrames = 40;
-    let halfFrameReached = false;
-
+    // Animazione di chiusura
     win.play("window_close");
-
-    win.on(Phaser.Animations.Events.ANIMATION_UPDATE, (_: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
-      if (!halfFrameReached && frame.index <= totalFrames / 2) {
-        collider.setInteractive();
-        halfFrameReached = true;
-      }
-    });
 
     win.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       win.setDepth(5);
+
+      // Pulizia finale
       this.removeObjectFromWindow(index);
       this.windowsBusy[index] = false;
 
-      // CHECK IMMEDIATO: se tutte chiuse → nuovo ciclo
+      // 🔁 Se tutte chiuse → nuovo ciclo
       this.forceCheckNewCycle();
     });
   }
