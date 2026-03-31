@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {Puzzle2026AssetConf} from "../shared/config/asset-conf.const";
 
 import {Game} from "./game";

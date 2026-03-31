@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
 import type {LaneMinimapBlip} from "../components/UIManager";
 
 import * as Phaser from "phaser";
@@ -2045,8 +2044,8 @@ export class GameManager extends Phaser.Scene {
       return {x: 0, y: -1};
     }
 
-    let lx = rawLx / len;
-    let ly = rawLy / len;
+    const lx = rawLx / len;
+    const ly = rawLy / len;
     const minDot = Math.cos(Phaser.Math.DegToRad(this.aimMaxSideDeg));
     const dot = lx * this.aimForwardX + ly * this.aimForwardY;
 

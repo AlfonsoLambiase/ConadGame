@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {useEffect, useRef, useState, CSSProperties} from "react";
 import * as Phaser from "phaser";
 
@@ -103,6 +101,7 @@ export default function FaiLaTuaSceltaGame({
 
       cleanGameMemory();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Phaser: init una tantum al mount
   }, []);
 
   function cleanGameMemory() {

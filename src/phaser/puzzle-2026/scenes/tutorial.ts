@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {Puzzle2026AssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = Puzzle2026AssetConf; //* Generalizzazione

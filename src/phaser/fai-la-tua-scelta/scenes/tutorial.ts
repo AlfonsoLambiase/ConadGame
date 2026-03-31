@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {FaiLaTuaSceltaAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = FaiLaTuaSceltaAssetConf; //* Generalizzazione

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
 import * as Phaser from "phaser";
 
 import {FaiLaTuaSceltaAssetConf} from "../shared/config/asset-conf.const";

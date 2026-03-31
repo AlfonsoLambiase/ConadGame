@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import * as Phaser from "phaser";
 
 import {ColpoVincenteGameplayConfig} from "../config/colpo-vincente-gameplay.config";

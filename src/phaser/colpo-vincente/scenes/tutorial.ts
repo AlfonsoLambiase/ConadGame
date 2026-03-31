@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {ColpoVincenteAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = ColpoVincenteAssetConf; //* Generalizzazione

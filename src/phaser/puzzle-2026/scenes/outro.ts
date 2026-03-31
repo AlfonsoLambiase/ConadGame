@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
 import {Puzzle2026AssetConf} from "../shared/config/asset-conf.const";
 
 import {PhaserEvents} from "@/lib/phaser-events";

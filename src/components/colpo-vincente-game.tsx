@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {useEffect, useRef, useState, type CSSProperties} from "react";
 import * as Phaser from "phaser";
 
@@ -104,6 +103,7 @@ export default function ColpoVincenteGame({
 
       cleanGameMemory();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Phaser: init una tantum al mount
   }, []);
 
   function cleanGameMemory() {

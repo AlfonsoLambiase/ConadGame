@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {FaiLaTuaSceltaAssetConf} from "../shared/config/asset-conf.const";
 
 import {Game} from "./game";

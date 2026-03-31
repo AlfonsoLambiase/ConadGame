@@ -234,9 +234,6 @@
 //   }
 // }
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
-
 import * as Phaser from "phaser";
 
 import {UIManager} from "../components/UIManager";
