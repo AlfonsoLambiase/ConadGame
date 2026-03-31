@@ -8,11 +8,14 @@ const giochi = [
   // { title: "Spara Neve", path: "/giochi/spara-neve" },
   // { title: "Raccogli Note", path: "/giochi/raccogli-note" },
   // { title: "Impara Inglese", path: "/giochi/impara-inglese " },
-  { title: "Collega Tutto", path: "/giochi/collega-tutto" },
-  { title: "Crea Parole", path: "/giochi/crea-parole" },
-  { title: "Ritmo Giusto", path: "/giochi/ritmo-giusto" },
-  { title: "Trova Parole", path: "/giochi/trova-parole" },
-  { title: "Prendi Oggetti", path: "/giochi/prendi-oggetti" },
+  // { title: "Collega Tutto", path: "/giochi/collega-tutto" },
+  // { title: "Crea Parole", path: "/giochi/crea-parole" },
+  // { title: "Ritmo Giusto", path: "/giochi/ritmo-giusto" },
+  // { title: "Trova Parole", path: "/giochi/trova-parole" },
+  // { title: "Prendi Oggetti", path: "/giochi/prendi-oggetti" },
+  { title: "Fai la tua scelta", path: "/giochi/fai-la-tua-scelta" },
+  { title: "Colpo vincente", path: "/giochi/colpo-vincente" },
+  { title: "Puzzle 2026", path: "/giochi/puzzle2026" },
 ];
 
 export default function Home() {
