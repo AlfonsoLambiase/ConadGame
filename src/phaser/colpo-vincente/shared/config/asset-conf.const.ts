@@ -13,6 +13,7 @@ export const ColpoVincenteAssetConf = {
     success: "success",
     error: "error",
     help: "help",
+    ball: "ball",
     endWin: "endWin",
     endFailed: "endFailed",
   } as const,
@@ -29,6 +30,7 @@ export const ColpoVincenteAssetConf = {
     iconScore: "iconScore",
     iconScore_Player: "iconScore_Player",
     iconScore_Enemy: "iconScore_Enemy",
+    iconScore_bg_white: "iconScore_bg_white",
     iconLive: "iconLive",
     logoPhaser: "logoPhaser", //! Solo per test
     endWin: "endWin",

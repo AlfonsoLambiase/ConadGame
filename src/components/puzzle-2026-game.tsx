@@ -5,6 +5,7 @@ import {EventBus} from "@/phaser/EventBus";
 import {PhaserEvents} from "@/lib/phaser-events";
 import {useGame} from "@/context/game-context";
 import {ELITE_SPONSOR} from "@/lib/elite-sponsor.enum";
+import {getSafeAreaInsets} from "@/lib/safe-area";
 import {Boot} from "@/phaser/puzzle-2026/scenes/boot"; //*
 import {Game} from "@/phaser/puzzle-2026/scenes/game"; //*
 import {Outro} from "@/phaser/puzzle-2026/scenes/outro"; //*
@@ -64,11 +65,15 @@ export default function Puzzle2026Game({
     // bg_logo and logo
     const {sponsorLogo, logoPhaser} = setLogo(gameContext.game?.sponsor);
 
+    const {top: safeTop} = getSafeAreaInsets();
+    //const safeTop = 25;
+    const doubleSafeTop = safeTop * 2;
 
     game.scene.start(assetConf.scene.boot, {
       sponsorLogo,
       isTesting,
       logoPhaser,
+      safeTop: doubleSafeTop,
     });
 
     const handleEndGame = () => {
@@ -100,7 +105,6 @@ export default function Puzzle2026Game({
 
       cleanGameMemory();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Phaser: init una tantum al mount
   }, []);
 
   function cleanGameMemory() {

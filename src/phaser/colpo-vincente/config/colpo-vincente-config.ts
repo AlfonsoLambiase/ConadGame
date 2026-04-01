@@ -16,7 +16,7 @@ export const ColpoVincenteConfig: Phaser.Types.Core.GameConfig = {
     default: "matter",
     matter: {
       gravity: {y: 0, x: 0},
-      debug: true,
+      debug: false,
     },
   },
   transparent: true,

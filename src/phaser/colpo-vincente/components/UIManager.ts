@@ -1,3 +1,4 @@
+
 import * as Phaser from "phaser";
 
 import {ColpoVincenteGameplayConfig} from "../config/colpo-vincente-gameplay.config";
@@ -65,6 +66,10 @@ export class UIManager {
    */
   private playerShotIcons: Phaser.GameObjects.Image[] = [];
   private enemyShotIcons: Phaser.GameObjects.Image[] = [];
+  /** Background bianco sotto ogni chip “disponibile” (stesso indice di `playerShotIcons`). */
+  private playerShotBgIcons: Phaser.GameObjects.Image[] = [];
+  /** Background bianco sotto ogni chip “disponibile” (stesso indice di `enemyShotIcons`). */
+  private enemyShotBgIcons: Phaser.GameObjects.Image[] = [];
   /** Scala base delle chip (per evidenziare +20% la prossima da lanciare). */
   private shotChipBaseScale = 0;
   private static readonly SHOT_CHIP_TURN_SCALE_MUL = 1.2;
@@ -85,7 +90,7 @@ export class UIManager {
     this.#createBackgroundLogoAndLogo();
     this.#createContainerScore();
     this.#createContainerScoreEnemy();
-    this.#createLaneMinimapRadar();
+    this.#createLaneMinimapRadar(); //! Attiva la minimap
     //this.#createIconHelp();
     //this.#createLives();
   }
@@ -370,12 +375,26 @@ export class UIManager {
 
     this.playerShotIcons = [];
 
+    for (const img of this.playerShotBgIcons) {
+      this.scene.tweens.killTweensOf(img);
+      img.destroy();
+    }
+
+    this.playerShotBgIcons = [];
+
     for (const img of this.enemyShotIcons) {
       this.scene.tweens.killTweensOf(img);
       img.destroy();
     }
 
     this.enemyShotIcons = [];
+
+    for (const img of this.enemyShotBgIcons) {
+      this.scene.tweens.killTweensOf(img);
+      img.destroy();
+    }
+
+    this.enemyShotBgIcons = [];
 
     const nPlayer = gameplayCfg.maxPlayerShots;
     const nEnemy = gameplayCfg.maxEnemyShots;
@@ -388,24 +407,34 @@ export class UIManager {
     const anchorPlayer = this.gameScene.setDynamicValueBasedOnScale(-132, -118);
 
     for (let idx = 0; idx < nPlayer; idx++) {
+      const bg = this.scene.add
+        .image(anchorPlayer + idx * spacing, baseY, assetConf.image.iconScore_bg_white)
+        .setOrigin(0.5)
+        .setScale(scale);
       const icon = this.scene.add
         .image(anchorPlayer + idx * spacing, baseY, assetConf.image.iconScore_Player)
         .setOrigin(0.5)
         .setScale(scale);
 
-      this.scoreContainer.add(icon);
+      this.scoreContainer.add([bg, icon]);
+      this.playerShotBgIcons.push(bg);
       this.playerShotIcons.push(icon);
     }
 
     const anchorEnemy = this.gameScene.setDynamicValueBasedOnScale(132, 118);
 
     for (let idx = 0; idx < nEnemy; idx++) {
+      const bg = this.scene.add
+        .image(anchorEnemy - idx * spacing, baseY, assetConf.image.iconScore_bg_white)
+        .setOrigin(0.5)
+        .setScale(scale);
       const icon = this.scene.add
         .image(anchorEnemy - idx * spacing, baseY, assetConf.image.iconScore_Enemy)
         .setOrigin(0.5)
         .setScale(scale);
 
-      this.scoreEnemyContainer.add(icon);
+      this.scoreEnemyContainer.add([bg, icon]);
+      this.enemyShotBgIcons.push(bg);
       this.enemyShotIcons.push(icon);
     }
 
@@ -428,29 +457,39 @@ export class UIManager {
       const isNext = phase === "player" && i === this.playerShotIcons.length - 1;
 
       this.playerShotIcons[i].setScale(isNext ? hi : base);
+      this.playerShotBgIcons[i]?.setScale(isNext ? hi : base);
     }
 
     for (let i = 0; i < this.enemyShotIcons.length; i++) {
       const isNext = phase === "enemy" && i === this.enemyShotIcons.length - 1;
 
       this.enemyShotIcons[i].setScale(isNext ? hi : base);
+      this.enemyShotBgIcons[i]?.setScale(isNext ? hi : base);
     }
   }
 
   /** Dopo un tiro player: toglie un’icona da dentro verso fuori (ultima in lista = più verso il centro). */
   consumePlayerShotIcon(): void {
     const icon = this.playerShotIcons.pop();
+    const bg = this.playerShotBgIcons.pop();
 
     if (icon) {
       this.#runShotChipConsumeEffect(icon);
+    }
+    if (bg) {
+      this.#runShotChipConsumeEffect(bg);
     }
   }
 
   consumeEnemyShotIcon(): void {
     const icon = this.enemyShotIcons.pop();
+    const bg = this.enemyShotBgIcons.pop();
 
     if (icon) {
       this.#runShotChipConsumeEffect(icon);
+    }
+    if (bg) {
+      this.#runShotChipConsumeEffect(bg);
     }
   }
 

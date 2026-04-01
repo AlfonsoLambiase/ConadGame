@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import type {LaneMinimapBlip} from "../components/UIManager";
 
 import * as Phaser from "phaser";
@@ -77,6 +77,10 @@ export class GameManager extends Phaser.Scene {
    * Se su uno schermo piccolo “tiri poco” e su uno grande “tiri troppo”, questo è il primo valore da toccare.
    */
   private dynLaunchPowerMul = 1;
+  /** Moltiplicatore device per velocità boccino (auto-launch iniziale). */
+  private dynBoccinoAutoLaunchSpeedWorld = 60;
+  /** Moltiplicatore device per potenza lancio IA (enemy). */
+  private dynEnemyLaunchPowerMul = 1;
   /**
    * **Max pull** dello slingshot (world px): quanto puoi trascinare via il dito dalla palla.
    * Più alto = puoi caricare più potenza (perché il pull massimo cresce).
@@ -96,6 +100,10 @@ export class GameManager extends Phaser.Scene {
    * Serve come riferimento per calcolare quanto rimpicciolire palle/bandierina verso il fondo corsia.
    */
   private dynPerspectiveYFarDesign = 180;
+  /** SetDynamic: scala base bandierino (vicino al player, prima della prospettiva). */
+  private dynFlagBaseScale: number = gameplayCfg.flagBaseScale;
+  /** SetDynamic: mul minimo bandierino in profondità (più lontano = più piccolo). */
+  private dynFlagPerspectiveMinMul: number = gameplayCfg.flagPerspectiveMinMul;
   /**
    * Prospettiva: **scala minima** delle palle in lontananza.
    * Più basso = più effetto profondità (palle piccole in alto), più alto = effetto più leggero.
@@ -320,6 +328,7 @@ export class GameManager extends Phaser.Scene {
     const power = Phaser.Math.Clamp(aim.pull * this.getLaunchPowerScale(), 22, 210);
 
     this.ballPlayer.setVelocity(aim.launchDirX * power, aim.launchDirY * power);
+    this.playBallLaunchSfx();
 
     this.onPlayerBallLaunchedAfterVelocitySet();
   };
@@ -347,13 +356,25 @@ export class GameManager extends Phaser.Scene {
     // - diminuisci se su schermi piccoli “tira troppo”
     this.dynLaunchPowerMul = this.gameScene.setDynamicValueBasedOnScale(0.82, 1.12);
 
+    // BOCCINO auto (inizio match): velocità iniziale device-aware.
+    // DEFAULT (modifica qui):
+    // - iPhone SE: 54
+    // - iPhone 12 Pro: 75
+    this.dynBoccinoAutoLaunchSpeedWorld = this.gameScene.setDynamicValueBasedOnScale(12, 80);
+
+    // IA enemy: potenza di lancio device-aware (su schermi grandi alziamo per mantenere efficacia).
+    this.dynEnemyLaunchPowerMul = this.gameScene.setDynamicValueBasedOnScale(
+      gameplayCfg.enemyLaunchPowerDeviceMulMin,
+      gameplayCfg.enemyLaunchPowerDeviceMulMax,
+    );
+
     // Slingshot / input.
     // - aumenta per permettere un pull massimo più ampio (più potenza massima potenziale)
     this.dynMaxPullWorld = this.gameScene.setDynamicValueBasedOnScale(110, 200);
 
     // Clamp velocità (anti-proiettile).
     // - abbassa se vedi rimbalzi troppo violenti / velocità “irreali”
-    this.dynBallMaxSpeedMul = this.gameScene.setDynamicValueBasedOnScale(0.88, 1.28);
+    this.dynBallMaxSpeedMul = this.gameScene.setDynamicValueBasedOnScale(0.92, 1.4);
     this.dynBoccinoMaxSpeedMul = this.gameScene.setDynamicValueBasedOnScale(0.88, 1);
 
     // Prospettiva (valori in design px, poi moltiplicati per `laneScale`).
@@ -361,6 +382,16 @@ export class GameManager extends Phaser.Scene {
     // - `MinMul`: quanto possono diventare piccole le palle in alto
     this.dynPerspectiveYFarDesign = this.gameScene.setDynamicValueBasedOnScale(130, 300);
     this.dynPerspectiveMinMul = this.gameScene.setDynamicValueBasedOnScale(0.28, 0.44);
+
+    // Bandierino: scala base + minimo in profondità (device-aware).
+    this.dynFlagBaseScale = this.gameScene.setDynamicValueBasedOnScale(
+      gameplayCfg.flagBaseScaleMin,
+      gameplayCfg.flagBaseScaleMax,
+    );
+    this.dynFlagPerspectiveMinMul = this.gameScene.setDynamicValueBasedOnScale(
+      gameplayCfg.flagPerspectiveMinMulMin,
+      gameplayCfg.flagPerspectiveMinMulMax,
+    );
 
     // Freccia potenza.
     // (solo UI)
@@ -431,6 +462,7 @@ export class GameManager extends Phaser.Scene {
 
     if (this.matchPhase === "boccino_rolling") {
       this.clampBoccinoMaxSpeed();
+      this.constrainBoccinoInsideLane();
     }
 
     if (this.matchPhase === "player_turn" || this.matchPhase === "enemy_turn") {
@@ -491,9 +523,9 @@ export class GameManager extends Phaser.Scene {
     const span = Math.max(yNear - yFar, 64);
     const tRaw = Phaser.Math.Clamp((this.flagMarker.y - yFar) / span, 0, 1);
     const t = Math.pow(tRaw, 1.12);
-    const mul = Phaser.Math.Linear(gameplayCfg.flagPerspectiveMinMul, 1, t);
+    const mul = Phaser.Math.Linear(this.dynFlagPerspectiveMinMul, 1, t);
 
-    this.flagMarker.setScale(gameplayCfg.flagBaseScale * mul);
+    this.flagMarker.setScale(this.dynFlagBaseScale * mul);
   }
 
   /** Depth display: Y più in basso → valore più alto (sopra agli altri). Resta sotto l’HUD (depth ~12). */
@@ -1190,6 +1222,11 @@ export class GameManager extends Phaser.Scene {
     }
   }
 
+  private playBallLaunchSfx(): void {
+    // Audio gestito dalla scene Game (AudioManager).
+    this.gameScene?.audioManager?.playAudio(assetConf.audio.ball);
+  }
+
   private onSceneShutdown(): void {
     this.resetCameraToDefaultLayout();
     this.destroyAllBallTrailEmitters();
@@ -1621,15 +1658,12 @@ export class GameManager extends Phaser.Scene {
       gameplayCfg.boccinoLaunchAngleMaxDeg,
     );
     const rad = Phaser.Math.DegToRad(deg);
-    const dyn = this.gameScene.setDynamicValueBasedOnScale(0.88, 1);
-    const speed = Math.min(
-      gameplayCfg.boccinoMaxLaunchSpeed,
-      gameplayCfg.boccinoMaxLaunchSpeed * dyn,
-    );
+    const speed = this.dynBoccinoAutoLaunchSpeedWorld;
     const dirX = Math.sin(rad);
     const dirY = -Math.cos(rad);
 
     this.matter.setVelocity(this.ballBoccino, dirX * speed, dirY * speed);
+    this.playBallLaunchSfx();
   }
 
   private getBoccinoSettlingParams(): {
@@ -1945,6 +1979,7 @@ export class GameManager extends Phaser.Scene {
 
         if (enemy.active && enemy.body) {
           this.onEnemyBallLaunchedHideFlag();
+          this.playBallLaunchSfx();
           this.matter.setVelocity(enemy, plan.vx, plan.vy);
           this.attachBallTrailEmitter(enemy, gameplayCfg.ballTrailTintEnemy);
           this.beginCameraShotOnLaunch();
@@ -2023,7 +2058,11 @@ export class GameManager extends Phaser.Scene {
     const mulLo = Phaser.Math.Linear(0.94, gameplayCfg.enemyPowerMulMin, imprecision);
     const mulHi = Phaser.Math.Linear(1.06, gameplayCfg.enemyPowerMulMax, imprecision);
     const powerMul = Phaser.Math.FloatBetween(mulLo, mulHi);
-    const power = Phaser.Math.Clamp(pull * this.getLaunchPowerScale() * powerMul, 22, 210);
+    const power = Phaser.Math.Clamp(
+      pull * this.getLaunchPowerScale() * powerMul * this.dynEnemyLaunchPowerMul,
+      22,
+      210,
+    );
 
     return {
       dirX: aim.x,
@@ -2044,8 +2083,8 @@ export class GameManager extends Phaser.Scene {
       return {x: 0, y: -1};
     }
 
-    const lx = rawLx / len;
-    const ly = rawLy / len;
+    let lx = rawLx / len;
+    let ly = rawLy / len;
     const minDot = Math.cos(Phaser.Math.DegToRad(this.aimMaxSideDeg));
     const dot = lx * this.aimForwardX + ly * this.aimForwardY;
 
@@ -2460,6 +2499,69 @@ export class GameManager extends Phaser.Scene {
       true,
       true,
     );
+  }
+
+  private constrainBoccinoInsideLane(): void {
+    const b = this.ballBoccino;
+
+    if (!b?.active || !b.body) {
+      return;
+    }
+
+    const r = Math.max(this.getBoccinoColliderWorldRadius(), 1);
+    const scale = Math.max(this.laneScale, 1e-6);
+
+    // Converti a design per usare i laterali inclinati come recinto.
+    const lx = (b.x - this.laneX) / scale;
+    const ly = b.y / scale;
+
+    const {xL, xR} = this.getLaneSideXsAtDesignY(ly);
+    const xMinW = this.laneX + (xL * scale + r);
+    const xMaxW = this.laneX + (xR * scale - r);
+
+    const yBackDesign = this.getMinimapYColliderDesign();
+    const yMinW = this.laneY + yBackDesign * scale + r;
+
+    const {designH} = this.getLaneDesignDimensions();
+    const yMaxW = this.laneY + designH * scale - r;
+
+    const body = b.body as MatterJS.BodyType;
+    const vx = body.velocity.x;
+    const vy = body.velocity.y;
+
+    let nx = b.x;
+    let ny = b.y;
+    let outX = false;
+    let outY = false;
+
+    if (nx < xMinW) {
+      nx = xMinW;
+      outX = true;
+    } else if (nx > xMaxW) {
+      nx = xMaxW;
+      outX = true;
+    }
+
+    if (ny < yMinW) {
+      ny = yMinW;
+      outY = true;
+    } else if (ny > yMaxW) {
+      ny = yMaxW;
+      outY = true;
+    }
+
+    if (!outX && !outY) {
+      return;
+    }
+
+    b.setPosition(nx, ny);
+    this.matter.alignBody(b, nx, ny, Phaser.Display.Align.CENTER);
+
+    // Taglia solo la componente che spinge fuori.
+    const nvx = outX && ((nx <= xMinW && vx < 0) || (nx >= xMaxW && vx > 0)) ? 0 : vx;
+    const nvy = outY && ((ny <= yMinW && vy < 0) || (ny >= yMaxW && vy > 0)) ? 0 : vy;
+
+    this.matter.setVelocity(b, nvx, nvy);
   }
 
   private updateBallRestWorldPosition(): void {

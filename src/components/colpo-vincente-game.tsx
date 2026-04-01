@@ -1,10 +1,12 @@
-import {useEffect, useRef, useState, type CSSProperties} from "react";
+
+import {useEffect, useRef, useState, CSSProperties} from "react";
 import * as Phaser from "phaser";
 
 import {EventBus} from "@/phaser/EventBus";
 import {PhaserEvents} from "@/lib/phaser-events";
 import {useGame} from "@/context/game-context";
 import {ELITE_SPONSOR} from "@/lib/elite-sponsor.enum";
+import {getSafeAreaInsets} from "@/lib/safe-area";
 import {Boot} from "@/phaser/colpo-vincente/scenes/boot"; //*
 import {Game} from "@/phaser/colpo-vincente/scenes/game"; //*
 import {Outro} from "@/phaser/colpo-vincente/scenes/outro"; //*
@@ -64,14 +66,15 @@ export default function ColpoVincenteGame({
     // bg_logo and logo
     const {sponsorLogo, logoPhaser} = setLogo(gameContext.game?.sponsor);
 
-   
- 
+    const {top: safeTop} = getSafeAreaInsets();
+    //const safeTop = 25;
+    const doubleSafeTop = safeTop * 2;
 
     game.scene.start(assetConf.scene.boot, {
       sponsorLogo,
       isTesting,
       logoPhaser,
-   
+      safeTop: doubleSafeTop,
     });
 
     const handleEndGame = () => {
@@ -103,7 +106,6 @@ export default function ColpoVincenteGame({
 
       cleanGameMemory();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Phaser: init una tantum al mount
   }, []);
 
   function cleanGameMemory() {

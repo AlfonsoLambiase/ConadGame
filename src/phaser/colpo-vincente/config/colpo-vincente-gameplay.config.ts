@@ -7,7 +7,14 @@ export const ColpoVincenteGameplayConfig = {
   boccinoLaunchAngleMinDeg: -15,
   boccinoLaunchAngleMaxDeg: 15,
   /** Modulo massimo velocità lancio boccino (world), sotto al cap della palla giocatore (speedBall 80). */
-  boccinoMaxLaunchSpeed: 40,
+  boccinoMaxLaunchSpeed: 80,
+  /**
+   * Velocità **device-aware** del boccino al primo lancio automatico (world px/s circa, in base a Matter):
+   * su schermi grandi serve più velocità per ottenere lo stesso effetto percepito.
+   * (min = device piccolo tipo iPhone SE, max = device grande tipo iPhone 12 Pro)
+   */
+  boccinoAutoLaunchSpeedWorldMin: 15,
+  boccinoAutoLaunchSpeedWorldMax: 120,
   /** Moltiplicatore sulla scala dinamica della palla giocatore. */
   boccinoScaleMul: 0.58,
   /**
@@ -16,7 +23,7 @@ export const ColpoVincenteGameplayConfig = {
    */
   boccinoPhysicsRadiusMul: 0.25,
   /** Cerchio arancione sovrapposto al collider del boccino (debug / tuning). */
-  boccinoColliderDebugVisible: true,
+  boccinoColliderDebugVisible: false, //! debug collider boccino, false disattivato.
   boccinoStoppedSpeedThreshold: 14,
   /** Soglia più stretta per la ball_player prima di mostrare di nuovo il bandierino (evita falsi positivi). */
   postShotPlayerStoppedSpeedThreshold: 3.5,
@@ -65,6 +72,12 @@ export const ColpoVincenteGameplayConfig = {
   maxPlayerShots: 3,
   /** Max lanci ball_enemy (stesso numero del giocatore, turni alterni). */
   maxEnemyShots: 3,
+  /**
+   * Moltiplicatore **device-aware** della potenza di lancio della IA (enemy).
+   * Utile quando su schermi grandi la corsia “sembra più lunga” e l’IA non arriva / va lenta.
+   */
+  enemyLaunchPowerDeviceMulMin: 0.55,
+  enemyLaunchPowerDeviceMulMax: 1.45,
 
   /**
    * Scia particelle dietro ball_player / ball_enemy in movimento (texture morbida generata in GameManager).
@@ -158,16 +171,34 @@ export const ColpoVincenteGameplayConfig = {
    * - **Più vicino a 0** → jitter e dispersione al massimo (nemico più debole / casuale).
    * Il valore scala l’errore rispetto a `enemyAimMaxJitterDeg` e restringe l’intervallo di `enemyPowerMul*` / `enemyPull*`.
    */
-  enemyAimPrecision: 0.8,
+  enemyAimPrecision: 0.88, //! Aumenta precisione dell'IA 0.78 – 0.88
 
   /** IA nemica: errore angolare massimo (± gradi) quando `enemyAimPrecision` = 0. Con precisione alta l’errore si riduce. */
-  enemyAimMaxJitterDeg: 17,
+  enemyAimMaxJitterDeg: 5, //! Aumenta dispersione dell'IA 5 – 10
   /** IA: moltiplicatore potenza sul tiro (random). */
-  enemyPowerMulMin: 0.68,
-  enemyPowerMulMax: 1.26,
+  enemyPowerMulMin: 0.96, //! Aumenta potenza dell'IA 0.96
+  enemyPowerMulMax: 1.1, //! Aumenta potenza dell'IA 1.10
   /** IA: “pull” virtuale slingshot prima del clamp potenza (come angolo puntatore). */
-  enemyPullMin: 28,
-  enemyPullMax: 175,
+  enemyPullMin: 45, //! Aumenta pull dell'IA 35 - 55
+  enemyPullMax: 165, //! Aumenta pull dell'IA 140 - 190
+
+  /*
+  Easy (umana imprecisa)
+  enemyAimPrecision: 0.70–0.78
+  enemyAimMaxJitterDeg: 9–14
+  enemyPowerMulMin/Max: 0.94–1.12
+
+  Normal (umana sensata)
+  enemyAimPrecision: 0.80–0.88
+  enemyAimMaxJitterDeg: 6–10
+  enemyPowerMulMin/Max: 0.96–1.08
+
+  Hard (umana brava, ancora non robot)
+  enemyAimPrecision: 0.90–0.96
+  enemyAimMaxJitterDeg: 3–6
+  enemyPowerMulMin/Max: 0.98–1.05
+  */
+
   /**
    * Distanza minima squadra (px, float): pareggio solo se |d_player − d_enemy| < ε.
    * Valore piccolo = vince la palla davvero più vicina; ε serve solo al rumore float/sub-pixel.
@@ -192,11 +223,17 @@ export const ColpoVincenteGameplayConfig = {
    */
   ballPlayerPhysicsRadiusMul: 0.75,
   /** Cerchio verde sovrapposto al collider della ball_player (debug / tuning). */
-  ballPlayerColliderDebugVisible: true,
+  ballPlayerColliderDebugVisible: false, //! debug collider ball_player, false disattivato.
   /** Scala base sprite bandierino (prima della prospettiva in base alla distanza). */
   flagBaseScale: 1,
+  /** SetDynamic: scala base bandierino (min=SE, max=12 Pro). */
+  flagBaseScaleMin: 1,
+  flagBaseScaleMax: 1.2,
   /** Moltiplicatore minimo bandierino quando è lontano in corsia. */
   flagPerspectiveMinMul: 0.42,
+  /** SetDynamic: mul minimo bandierino in profondità (min=SE, max=12 Pro). */
+  flagPerspectiveMinMulMin: 0.42,
+  flagPerspectiveMinMulMax: 0.6,
 
   /**
    * Ordinamento depth in corsia: Y mondo maggiore (più in basso sullo schermo) → depth più alto (sopra).

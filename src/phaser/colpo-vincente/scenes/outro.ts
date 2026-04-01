@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import {ColpoVincenteAssetConf} from "../shared/config/asset-conf.const";
 
 import {PhaserEvents} from "@/lib/phaser-events";
