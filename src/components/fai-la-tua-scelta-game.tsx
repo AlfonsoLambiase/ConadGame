@@ -33,6 +33,13 @@ export default function FaiLaTuaSceltaGame({
   const gameContext = useGame();
   const gameRef = useRef<HTMLDivElement>(null);
   const gameInstance = useRef<Phaser.Game | null>(null);
+  const setLevelCompleteRef = useRef(setLevelComplete);
+  const setExitGameRef = useRef(setExitGame);
+
+  useEffect(() => {
+    setLevelCompleteRef.current = setLevelComplete;
+    setExitGameRef.current = setExitGame;
+  }, [setLevelComplete, setExitGame]);
 
   // Stato iniziale con due background
   const [backgroundStyle, setBackgroundStyle] = useState<CSSProperties>({
@@ -78,11 +85,11 @@ export default function FaiLaTuaSceltaGame({
     });
 
     const handleEndGame = () => {
-      setLevelComplete();
+      setLevelCompleteRef.current();
     };
 
     const handleExitGame = () => {
-      setExitGame();
+      setExitGameRef.current();
     };
 
     const handleChangeBackground = () => {
@@ -106,7 +113,7 @@ export default function FaiLaTuaSceltaGame({
 
       cleanGameMemory();
     };
-  }, []);
+  }, [gameContext.game?.sponsor, isTesting]);
 
   function cleanGameMemory() {
     if (gameInstance.current) {

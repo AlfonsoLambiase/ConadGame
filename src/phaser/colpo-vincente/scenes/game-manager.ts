@@ -1566,7 +1566,6 @@ export class GameManager extends Phaser.Scene {
 
     const s = this.gameScene.setDynamicValueBasedOnScale(0.42, 0.72);
     const sBoccino = s * gameplayCfg.boccinoScaleMul;
-    const texHalf = 110;
     const radiusPlayer = this.getPlayerBallColliderRadiusAtScale1();
     const radiusBoccino = this.getBoccinoColliderRadiusAtScale1();
 
@@ -2083,8 +2082,8 @@ export class GameManager extends Phaser.Scene {
       return {x: 0, y: -1};
     }
 
-    let lx = rawLx / len;
-    let ly = rawLy / len;
+    const lx = rawLx / len;
+    const ly = rawLy / len;
     const minDot = Math.cos(Phaser.Math.DegToRad(this.aimMaxSideDeg));
     const dot = lx * this.aimForwardX + ly * this.aimForwardY;
 
@@ -2512,7 +2511,6 @@ export class GameManager extends Phaser.Scene {
     const scale = Math.max(this.laneScale, 1e-6);
 
     // Converti a design per usare i laterali inclinati come recinto.
-    const lx = (b.x - this.laneX) / scale;
     const ly = b.y / scale;
 
     const {xL, xR} = this.getLaneSideXsAtDesignY(ly);
