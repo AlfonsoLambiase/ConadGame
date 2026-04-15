@@ -268,6 +268,8 @@ export class GameManager extends Phaser.Scene {
    */
   private readonly lateralDepthKickFactor = 0.34;
   private lateralKickNextAllowedAt = 0;
+  private rimbalzoSfxNextAllowedAt = 0;
+  private readonly rimbalzoSfxCooldownMs = 55;
   private readonly lateralKickCooldownMs = 55;
 
   private readonly onPointerDown = (pointer: Phaser.Input.Pointer): void => {
@@ -700,12 +702,43 @@ export class GameManager extends Phaser.Scene {
     }
 
     if (this.flagMarker?.visible) {
-      // Depth bandierina: sempre "dietro" al boccino di 1, come richiesto.
-      const boccinoDepth = this.ballBoccino?.active
-        ? this.getLaneEntitySortDepth(this.ballBoccino.y, gameplayCfg.laneDepthBiasBoccino)
-        : this.getLaneEntitySortDepth(this.flagMarker.y, gameplayCfg.laneDepthBiasFlag);
+      const fy = this.flagMarker.y;
+      let maxDepthMoreBehind: number = gameplayCfg.laneEntityDepthMin;
 
-      this.flagMarker.setDepth(boccinoDepth - 1);
+      for (const enemy of this.ballEnemies) {
+        if (enemy.active && enemy.visible && enemy.y < fy) {
+          maxDepthMoreBehind = Math.max(
+            maxDepthMoreBehind,
+            this.getLaneEntitySortDepth(enemy.y, gameplayCfg.laneDepthBiasBallEnemy),
+          );
+        }
+      }
+
+      for (const b of playerBalls) {
+        if (b.visible && b.y < fy) {
+          maxDepthMoreBehind = Math.max(
+            maxDepthMoreBehind,
+            this.getLaneEntitySortDepth(b.y, gameplayCfg.laneDepthBiasBallPlayer),
+          );
+        }
+      }
+
+      const natural = this.getLaneEntitySortDepth(fy, gameplayCfg.laneDepthBiasFlag);
+      const bD = this.ballBoccino?.active
+        ? this.getLaneEntitySortDepth(this.ballBoccino.y, gameplayCfg.laneDepthBiasBoccino)
+        : undefined;
+      const boccinoCap =
+        bD !== undefined
+          ? bD - gameplayCfg.laneFlagBehindBoccinoDepthDelta
+          : gameplayCfg.laneEntityDepthMax;
+
+      const eps = gameplayCfg.laneFlagDepthAboveBallsBehindEpsilon;
+
+      let d = Math.min(natural, boccinoCap);
+
+      d = Math.max(d, maxDepthMoreBehind + eps);
+      d = Math.min(d, boccinoCap);
+      this.flagMarker.setDepth(d);
     }
 
     const aimBall =
@@ -1482,6 +1515,7 @@ export class GameManager extends Phaser.Scene {
     this.input.off("pointerup", this.onPointerUp);
     this.input.off("pointerupoutside", this.onPointerUp);
     this.matter.world.off("collisionstart", this.onLateralWallCollisionStart, this);
+    this.matter.world.off("collisionstart", this.onRimbalzoCollisionStart, this);
 
     this.closestBallIndicator?.destroy();
     this.closestBallIndicator = undefined;
@@ -1678,6 +1712,69 @@ export class GameManager extends Phaser.Scene {
 
     return null;
   }
+
+  private isGameBallBody(body: MatterJS.BodyType): boolean {
+    if (this.ballBoccino?.active && this.ballBoccino.body === body) {
+      return true;
+    }
+
+    return this.getTeamBallMatterImageForBody(body) !== null;
+  }
+
+  /** Pareti corsia, bordi Matter world, ecc.: statico e non una palla di gioco. */
+  private isBarrierWallBody(body: MatterJS.BodyType): boolean {
+    if (this.isGameBallBody(body)) {
+      return false;
+    }
+
+    return body.isStatic === true;
+  }
+
+  private shouldPlayRimbalzoForPair(bodyA: MatterJS.BodyType, bodyB: MatterJS.BodyType): boolean {
+    const aBall = this.isGameBallBody(bodyA);
+    const bBall = this.isGameBallBody(bodyB);
+
+    if (aBall && bBall) {
+      return true;
+    }
+
+    if (aBall && this.isBarrierWallBody(bodyB)) {
+      return true;
+    }
+
+    if (bBall && this.isBarrierWallBody(bodyA)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private tryPlayRimbalzoSfx(): void {
+    const now = this.time.now;
+
+    if (now < this.rimbalzoSfxNextAllowedAt) {
+      return;
+    }
+
+    this.rimbalzoSfxNextAllowedAt = now + this.rimbalzoSfxCooldownMs;
+    this.gameScene?.audioManager?.playAudio(assetConf.audio.rimbalzo);
+  }
+
+  private readonly onRimbalzoCollisionStart = (
+    event: Phaser.Physics.Matter.Events.CollisionStartEvent,
+  ): void => {
+    for (const pair of event.pairs) {
+      const {bodyA, bodyB} = pair;
+
+      if (!this.shouldPlayRimbalzoForPair(bodyA, bodyB)) {
+        continue;
+      }
+
+      this.tryPlayRimbalzoSfx();
+
+      return;
+    }
+  };
 
   private computeLayoutDimensions(): void {
     const config = this.sys.game.config as {width: number; height: number};
@@ -1878,6 +1975,7 @@ export class GameManager extends Phaser.Scene {
     this.input.on("pointerupoutside", this.onPointerUp);
 
     this.matter.world.on("collisionstart", this.onLateralWallCollisionStart, this);
+    this.matter.world.on("collisionstart", this.onRimbalzoCollisionStart, this);
 
     this.time.delayedCall(gameplayCfg.boccinoLaunchDelayMs, () => this.tryAutoLaunchBoccino());
   }

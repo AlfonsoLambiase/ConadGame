@@ -63,7 +63,7 @@ export class Game extends Phaser.Scene {
     // this.timerManager.setGameScene(this);
     // this.timerManager.startTimer();
 
-    this.addLogoPhaser();
+    //this.addLogoPhaser();
   }
 
   private initializeGameManager() {

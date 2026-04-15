@@ -259,6 +259,16 @@ export const ColpoVincenteGameplayConfig = {
   laneDepthBiasBallPlayer: 0.045,
   /** Bandierino sopra al bersaglio quando condivide la stessa Y. */
   laneDepthBiasFlag: 0.065,
+  /**
+   * Bandierino: deve stare sopra (depth maggiore) alle palle più indietro (Y minore) del flag;
+   * piccolo delta sopra al depth teorico di quelle palle, rispettando il limite vs boccino.
+   */
+  laneFlagDepthAboveBallsBehindEpsilon: 0.004,
+  /**
+   * Bandierino appena sotto al boccino in depth (non usare −1: i depth corsia sono ~2–11 con passi
+   * ~0.0035/px; −1 faceva finire il flag sotto palle player/enemy vicine al boccino).
+   */
+  laneFlagBehindBoccinoDepthDelta: 0.012,
   /** Indicatore “palla più vicina al boccino”: sopra la palla in depth (stessa logica Y corsia). */
   laneDepthBiasClosestBallIndicator: 0.072,
 

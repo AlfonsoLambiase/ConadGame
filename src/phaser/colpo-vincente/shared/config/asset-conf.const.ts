@@ -14,6 +14,7 @@ export const ColpoVincenteAssetConf = {
     error: "error",
     help: "help",
     ball: "ball",
+    rimbalzo: "rimbalzo",
     endWin: "endWin",
     endFailed: "endFailed",
   } as const,

@@ -56,6 +56,7 @@ export class GameManager extends Phaser.Scene {
   private static readonly PIECE_BORDER_CORNER_RADIUS = 8;
   private static readonly TILE_SEAM_OVERLAP = 2;
 
+  /** Raggio angoli interni del “buco” (coerente con spessore e PIECE_BORDER_CORNER_RADIUS). */
   private activeDragClusterCellIndices: number[] | null = null;
   private activeDragStartPositions: Map<PuzzlePieceRoot, Phaser.Math.Vector2> = new Map();
   private activeDragAnchorStart: Phaser.Math.Vector2 | null = null;
@@ -124,8 +125,8 @@ export class GameManager extends Phaser.Scene {
     const logSize = (key: string) => {
       const tex = this.textures.get(key);
       const src = tex?.getSourceImage() as HTMLImageElement | HTMLCanvasElement | undefined;
-      const w = src?.width;
-      const h = src?.height;
+      const w = src ? src.width : undefined;
+      const h = src ? src.height : undefined;
 
       console.log(`[Puzzle2026] texture "${key}" size:`, {w, h});
     };
@@ -175,8 +176,8 @@ export class GameManager extends Phaser.Scene {
     const texKey = assetConf.image.card_1;
     const tex = this.textures.get(texKey);
     const src = tex?.getSourceImage() as HTMLImageElement | HTMLCanvasElement | undefined;
-    const srcW = src?.width ?? this.CARD_MAX_W;
-    const srcH = src?.height ?? this.CARD_MAX_H;
+    const srcW = src ? src.width : this.CARD_MAX_W;
+    const srcH = src ? src.height : this.CARD_MAX_H;
 
     const s = Math.min(this.CARD_MAX_W / srcW, this.CARD_MAX_H / srcH);
 
@@ -305,6 +306,80 @@ export class GameManager extends Phaser.Scene {
     return this.arePiecesLinked(selfMeta, nmeta);
   }
 
+  /**
+   * Cornice piena: esterno rettangolo ad angoli vivi, interno con angoli arrotondati (riempimento bianco).
+   * Scomposta in fasce + 4 angoli (compatibile WebGL Earcut, niente buchi con fillPath multiplo).
+   */
+  private fillPieceBorderRingFull(
+    g: Phaser.GameObjects.Graphics,
+    ox: number,
+    oy: number,
+    ow: number,
+    oh: number,
+    lw: number,
+    ix: number,
+    iy: number,
+    iw: number,
+    ih: number,
+    ir: number,
+  ): void {
+    if (iw <= 0 || ih <= 0) return;
+
+    const r = ir;
+    const PI = Math.PI;
+    const HALF_PI = PI / 2;
+
+    if (r < 0.5) {
+      g.fillRect(ix, oy, iw, lw);
+      g.fillRect(ix, oy + oh - lw, iw, lw);
+      g.fillRect(ox, iy, lw, ih);
+      g.fillRect(ox + ow - lw, iy, lw, ih);
+
+      return;
+    }
+
+    g.fillRect(ix + r, oy, iw - 2 * r, lw);
+    g.fillRect(ix + r, oy + oh - lw, iw - 2 * r, lw);
+    g.fillRect(ox, iy + r, lw, ih - 2 * r);
+    g.fillRect(ox + ow - lw, iy + r, lw, ih - 2 * r);
+
+    g.beginPath();
+    g.moveTo(ox, oy);
+    g.lineTo(ix + r, oy);
+    g.lineTo(ix + r, iy);
+    g.arc(ix + r, iy + r, r, -HALF_PI, -PI, true);
+    g.lineTo(ox, iy + r);
+    g.closePath();
+    g.fillPath();
+
+    g.beginPath();
+    g.moveTo(ox + ow, oy);
+    g.lineTo(ix + iw - r, oy);
+    g.lineTo(ix + iw - r, iy);
+    g.arc(ix + iw - r, iy + r, r, -HALF_PI, 0);
+    g.lineTo(ox + ow, iy + r);
+    g.closePath();
+    g.fillPath();
+
+    g.beginPath();
+    g.moveTo(ox + ow, oy + oh);
+    g.lineTo(ix + iw - r, oy + oh);
+    g.lineTo(ix + iw - r, iy + ih);
+    g.arc(ix + iw - r, iy + ih - r, r, HALF_PI, 0, true);
+    g.lineTo(ox + ow, iy + ih - r);
+    g.closePath();
+    g.fillPath();
+
+    g.beginPath();
+    g.moveTo(ox, oy + oh);
+    g.lineTo(ix + r, oy + oh);
+    g.lineTo(ix + r, iy + ih);
+    g.arc(ix + r, iy + ih - r, r, HALF_PI, PI);
+    g.lineTo(ox, iy + ih - r);
+    g.closePath();
+    g.fillPath();
+  }
+
   private drawPieceBorder(root: PuzzlePieceRoot): void {
     const meta = root.getData("meta") as PuzzlePieceMeta | undefined;
     const border = root.getAt(1) as Phaser.GameObjects.Graphics | undefined;
@@ -319,7 +394,8 @@ export class GameManager extends Phaser.Scene {
     const hh = h / 2;
     const lw = GameManager.PIECE_BORDER_WIDTH;
     const rad = GameManager.PIECE_BORDER_CORNER_RADIUS;
-    const inset = lw / 2;
+    /** Estende il bordo verso l’esterno così copre la striscia dell’immagine (tileDisplay + TILE_SEAM_OVERLAP). */
+    const cover = GameManager.TILE_SEAM_OVERLAP / 2;
 
     const linkedUp = row > 0 && this.edgeLinked(ci, ci - this.puzzleCols, meta);
     const linkedDown = row < this.puzzleRows - 1 && this.edgeLinked(ci, ci + this.puzzleCols, meta);
@@ -332,10 +408,22 @@ export class GameManager extends Phaser.Scene {
     const showRight = !linkedRight;
 
     border.clear();
-    border.lineStyle(lw, 0xffffff, 1);
+    border.fillStyle(0xffffff, 1);
+
+    const ox = -hw - cover;
+    const oy = -hh - cover;
+    const ow = w + 2 * cover;
+    const oh = h + 2 * cover;
 
     if (showTop && showBottom && showLeft && showRight) {
-      border.strokeRoundedRect(-hw + inset, -hh + inset, w - 2 * inset, h - 2 * inset, rad);
+      const ix = ox + lw;
+      const iy = oy + lw;
+      const iw = ow - 2 * lw;
+      const ih = oh - 2 * lw;
+      const maxIr = Math.max(0, Math.min(iw, ih) / 2 - 0.5);
+      const ir = Math.min(Math.max(0, rad - lw), maxIr);
+
+      this.fillPieceBorderRingFull(border, ox, oy, ow, oh, lw, ix, iy, iw, ih, ir);
 
       return;
     }
@@ -343,31 +431,33 @@ export class GameManager extends Phaser.Scene {
     const edgePad = Math.min(rad, lw * 2);
 
     if (showTop) {
-      border.beginPath();
-      border.moveTo(-hw + (showLeft ? edgePad : 0), -hh);
-      border.lineTo(hw - (showRight ? edgePad : 0), -hh);
-      border.strokePath();
+      const x0 = ox + cover + (showLeft ? edgePad : 0);
+      const x1 = ox + ow - cover - (showRight ? edgePad : 0);
+
+      border.fillRect(x0, oy, x1 - x0, lw);
     }
 
     if (showRight) {
-      border.beginPath();
-      border.moveTo(hw, -hh + (showTop ? edgePad : 0));
-      border.lineTo(hw, hh - (showBottom ? edgePad : 0));
-      border.strokePath();
+      const xFill = ox + ow - lw;
+      const y0 = oy + cover + (showTop ? edgePad : 0);
+      const y1 = oy + oh - cover - (showBottom ? edgePad : 0);
+
+      border.fillRect(xFill, y0, lw, y1 - y0);
     }
 
     if (showBottom) {
-      border.beginPath();
-      border.moveTo(hw - (showRight ? edgePad : 0), hh);
-      border.lineTo(-hw + (showLeft ? edgePad : 0), hh);
-      border.strokePath();
+      const x0 = ox + cover + (showLeft ? edgePad : 0);
+      const x1 = ox + ow - cover - (showRight ? edgePad : 0);
+      const yFill = oy + oh - lw;
+
+      border.fillRect(x0, yFill, x1 - x0, lw);
     }
 
     if (showLeft) {
-      border.beginPath();
-      border.moveTo(-hw, hh - (showBottom ? edgePad : 0));
-      border.lineTo(-hw, -hh + (showTop ? edgePad : 0));
-      border.strokePath();
+      const y0 = oy + cover + (showTop ? edgePad : 0);
+      const y1 = oy + oh - cover - (showBottom ? edgePad : 0);
+
+      border.fillRect(ox, y0, lw, y1 - y0);
     }
   }
 
@@ -934,8 +1024,8 @@ export class GameManager extends Phaser.Scene {
     const texKey = assetConf.image.card_1;
     const tex = this.textures.get(texKey);
     const source = tex.getSourceImage() as HTMLImageElement | HTMLCanvasElement | undefined;
-    const srcW = source?.width ?? this.CARD_MAX_W;
-    const srcH = source?.height ?? this.CARD_MAX_H;
+    const srcW = source ? source.width : this.CARD_MAX_W;
+    const srcH = source ? source.height : this.CARD_MAX_H;
 
     const tileSrcW = srcW / cols;
     const tileSrcH = srcH / rows;
@@ -1366,6 +1456,163 @@ export class GameManager extends Phaser.Scene {
     this.gameHeight = Number(config.height);
 
     this.marginTop = this.gameScene.setDynamicValueBasedOnScale(150, 400);
+  }
+
+  /**
+   * Risolve metà del puzzle: sceglie le prime ceil(total/2) celle (blocco connesso
+   * dall'alto-sinistra) e piazza ciascun pezzo nella sua posizione corretta con animazione.
+   * Usa swap atomici con tracking per garantire che nessuna cella resti vuota.
+   */
+  solveHalfPuzzle(): void {
+    if (this.isGameOver) return;
+
+    this.rebuildPiecesByCellIndex();
+
+    const total = this.puzzleRows * this.puzzleCols;
+    const solveCount = Math.max(1, Math.ceil(total / 2));
+
+    const pieceByCorrectIndex = new Map<number, PuzzlePieceRoot>();
+    const currentCellOf = new Map<PuzzlePieceRoot, number>();
+
+    for (let ci = 0; ci < total; ci++) {
+      const p = this.piecesByCellIndex[ci];
+      const meta = p?.getData("meta") as PuzzlePieceMeta | undefined;
+
+      if (!p || !meta) continue;
+
+      pieceByCorrectIndex.set(meta.correctIndex, p);
+      currentCellOf.set(p, ci);
+    }
+
+    const board: (PuzzlePieceRoot | null)[] = [...this.piecesByCellIndex];
+    let didMove = false;
+
+    for (let target = 0; target < solveCount; target++) {
+      const rightPiece = pieceByCorrectIndex.get(target);
+
+      if (!rightPiece) continue;
+
+      const curCell = currentCellOf.get(rightPiece)!;
+
+      if (curCell === target) continue;
+
+      const occupant = board[target];
+
+      board[target] = rightPiece;
+      board[curCell] = occupant;
+
+      currentCellOf.set(rightPiece, target);
+      const rightMeta = rightPiece.getData("meta") as PuzzlePieceMeta;
+
+      rightMeta.cellIndex = target;
+      rightPiece.setData("meta", rightMeta);
+
+      if (occupant) {
+        currentCellOf.set(occupant, curCell);
+        const occMeta = occupant.getData("meta") as PuzzlePieceMeta;
+
+        occMeta.cellIndex = curCell;
+        occupant.setData("meta", occMeta);
+      }
+
+      didMove = true;
+    }
+
+    if (!didMove) {
+      this.afterPuzzleMove();
+
+      return;
+    }
+
+    const accidentallySolved: number[] = [];
+
+    for (let i = solveCount; i < total; i++) {
+      const p = board[i];
+      const m = p?.getData("meta") as PuzzlePieceMeta | undefined;
+
+      if (m && m.cellIndex === m.correctIndex) {
+        accidentallySolved.push(i);
+      }
+    }
+
+    if (accidentallySolved.length >= 2) {
+      const shuffled = [...accidentallySolved];
+
+      Phaser.Utils.Array.Shuffle(shuffled);
+
+      while (shuffled.every((c, idx) => c === accidentallySolved[idx])) {
+        Phaser.Utils.Array.Shuffle(shuffled);
+      }
+
+      const tempPieces = accidentallySolved.map((c) => board[c]!);
+
+      for (let k = 0; k < accidentallySolved.length; k++) {
+        const newCell = shuffled[k];
+        const piece = tempPieces[k];
+        const meta = piece.getData("meta") as PuzzlePieceMeta;
+
+        meta.cellIndex = newCell;
+        piece.setData("meta", meta);
+        board[newCell] = piece;
+      }
+    } else if (accidentallySolved.length === 1) {
+      const ci = accidentallySolved[0];
+      const otherCells: number[] = [];
+
+      for (let i = solveCount; i < total; i++) {
+        if (i === ci) continue;
+
+        const p = board[i];
+        const m = p?.getData("meta") as PuzzlePieceMeta | undefined;
+
+        if (m && m.cellIndex !== m.correctIndex) {
+          otherCells.push(i);
+        }
+      }
+
+      if (otherCells.length > 0) {
+        const swapWith = otherCells[Math.floor(Math.random() * otherCells.length)];
+        const pA = board[ci]!;
+        const pB = board[swapWith]!;
+
+        board[ci] = pB;
+        board[swapWith] = pA;
+
+        const mA = pA.getData("meta") as PuzzlePieceMeta;
+        const mB = pB.getData("meta") as PuzzlePieceMeta;
+
+        mA.cellIndex = swapWith;
+        mB.cellIndex = ci;
+        pA.setData("meta", mA);
+        pB.setData("meta", mB);
+      }
+    }
+
+    for (let i = 0; i < total; i++) {
+      this.piecesByCellIndex[i] = board[i];
+    }
+
+    for (let i = 0; i < total; i++) {
+      const p = board[i];
+
+      if (!p) continue;
+
+      const center = this.cellCenters[i];
+
+      this.tweens.add({
+        targets: p,
+        x: center.x,
+        y: center.y,
+        duration: 350,
+        ease: "Cubic.easeInOut",
+      });
+    }
+
+    this.time.delayedCall(400, () => {
+      this.forceSnapAllToGrid();
+      this.rebuildPiecesByCellIndex();
+      this.afterPuzzleMove();
+    });
   }
 
   checkGameOver(): void {

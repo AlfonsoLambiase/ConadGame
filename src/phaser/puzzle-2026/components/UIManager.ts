@@ -37,7 +37,7 @@ export class UIManager {
     this.#createBackgroundLogoAndLogo();
     this.#createContainerScore();
     this.#createIconHelp();
-    this.#createLives();
+    //this.#createLives();
   }
 
   public setGameScene(scene: Game): void {
@@ -210,9 +210,8 @@ export class UIManager {
     iconHelp.on("pointerdown", () => {
       if (this.helpUsed >= this.differenceTryLimit) return;
 
-      console.log("iconHelp clicked, aggiungere: audio e metodo di cosa deve fare");
-
       this.helpUsed++;
+      this.gameScene.gameManager.solveHalfPuzzle();
 
       if (this.helpUsed === this.differenceTryLimit) {
         iconHelp.disableInteractive();
