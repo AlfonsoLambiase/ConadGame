@@ -15,6 +15,9 @@ export const Puzzle2026AssetConf = {
     help: "help",
     endWin: "endWin",
     endFailed: "endFailed",
+    selectCard: "selectCard",
+    moveCard: "moveCard",
+    mergeCard: "mergeCard",
   } as const,
   image: {
     // for timerManager
@@ -34,6 +37,8 @@ export const Puzzle2026AssetConf = {
     endBackground: "endBackground",
 
     // for specific game
+    bg_card: "bg_card",
+    card_1: "card_1",
 
     // for exitManager
     btnExitGame: "btnExitGame",

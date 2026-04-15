@@ -10,7 +10,8 @@ export class UIManager {
   gameScene!: Game;
 
   public score = 0;
-  public maxScore = 30;
+  /** Impostato da GameManager.setPuzzleMaxScore(rows × cols) al build del puzzle. */
+  public maxScore = 1;
   private displayedScore: number = 0;
   private scoreText!: Phaser.GameObjects.Text;
   originalScale: number = 1;
@@ -41,6 +42,41 @@ export class UIManager {
 
   public setGameScene(scene: Game): void {
     this.gameScene = scene;
+  }
+
+  /** Max = puzzleRows × puzzleCols (es. 3×3=9, 4×5=20). Resetta score a 0. */
+  setPuzzleMaxScore(max: number): void {
+    this.maxScore = Math.max(1, max);
+    this.score = 0;
+    this.displayedScore = 0;
+
+    if (this.scoreText) {
+      this.scoreText.setText(`0 / ${this.maxScore}`);
+    }
+
+    this.scene.registry.set(assetConf.registry.score, 0);
+  }
+
+  /** Bordo inferiore dell'HUD punteggio (coordinate mondo scena Game). */
+  getScoreHudBottomY(): number {
+    return this.scoreContainer.getBounds().bottom;
+  }
+
+  /** Bordo superiore del tasto help: limite inferiore della fascia per centrare il puzzle. */
+  getHelpButtonTopY(): number {
+    return this.iconHelp.getBounds().top;
+  }
+
+  /** Aggiorna score da gruppi collegati (es. 2/9) senza animazione tween. */
+  setPuzzleScoreImmediate(value: number): void {
+    this.score = Phaser.Math.Clamp(value, 0, this.maxScore);
+    this.displayedScore = this.score;
+
+    if (this.scoreText) {
+      this.scoreText.setText(`${this.score} / ${this.maxScore}`);
+    }
+
+    this.scene.registry.set(assetConf.registry.score, this.score);
   }
 
   #createBackgroundGame() {

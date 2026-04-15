@@ -118,7 +118,7 @@ export default function ColpoVincenteGame({
   function cleanGameMemory() {
     if (gameInstance.current) {
       gameInstance.current.destroy(true);
-      gameInstance.current = null;
+      gameInstance.current = null;   
     }
   }
 

@@ -1,4 +1,3 @@
-
 import * as Phaser from "phaser";
 
 import {ColpoVincenteGameplayConfig} from "../config/colpo-vincente-gameplay.config";
@@ -70,16 +69,43 @@ export class UIManager {
   private playerShotBgIcons: Phaser.GameObjects.Image[] = [];
   /** Background bianco sotto ogni chip “disponibile” (stesso indice di `enemyShotIcons`). */
   private enemyShotBgIcons: Phaser.GameObjects.Image[] = [];
-  /** Scala base delle chip (per evidenziare +20% la prossima da lanciare). */
+  /** Scala base delle chip; la prossima da lanciare usa pulse attorno a questa scala. */
   private shotChipBaseScale = 0;
-  private static readonly SHOT_CHIP_TURN_SCALE_MUL = 1.2;
   /** Chip già tolte dall’array ma ancora in tween (evita orphan al reset). */
   private readonly shotChipsPendingDestroy: Phaser.GameObjects.Image[] = [];
+
+  /**
+   * Distanza tra centri chip: non supera lo spazio utile nel background (margini + ingombro prima/ultima palla).
+   */
+  private static clampShotChipSpacingToBg(
+    n: number,
+    spacingBase: number,
+    bgDisplayWidth: number,
+    sideInset: number,
+    chipDisplayW: number,
+  ): number {
+    if (n <= 1) {
+      return spacingBase;
+    }
+
+    const maxRow = bgDisplayWidth - 2 * sideInset - chipDisplayW;
+    const cap = maxRow / (n - 1);
+
+    if (!Number.isFinite(cap) || cap <= 0) {
+      return Math.min(spacingBase, 12);
+    }
+
+    return Math.min(spacingBase, cap);
+  }
 
   /** Vista dall’alto corsia: `Rectangle` + `Circle` (bounds espliciti; `Graphics` poteva non comparire con Canvas/culling). */
   private laneMinimapRoot?: Phaser.GameObjects.Container;
   private laneMinimapBg?: Phaser.GameObjects.Rectangle;
   private readonly laneMinimapDots: Phaser.GameObjects.Arc[] = [];
+  /** Fascia logo (container + eventuale fill notch): tween alpha insieme agli altri HUD durante camera shot. */
+  private readonly cameraShotUiLogoBandTargets: Phaser.GameObjects.GameObject[] = [];
+  private scorePanelBgPlayer!: Phaser.GameObjects.Image;
+  private scorePanelBgEnemy!: Phaser.GameObjects.Image;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -97,6 +123,57 @@ export class UIManager {
 
   public setGameScene(scene: Game): void {
     this.gameScene = scene;
+  }
+
+  #getCameraShotUiAlphaTargets(): Phaser.GameObjects.GameObject[] {
+    const list: Phaser.GameObjects.GameObject[] = [this.scoreContainer, this.scoreEnemyContainer];
+
+    if (this.laneMinimapRoot) {
+      list.push(this.laneMinimapRoot);
+    }
+
+    list.push(...this.cameraShotUiLogoBandTargets);
+
+    return list.filter((o) => o?.active);
+  }
+
+  /**
+   * Con zoom camera shot: attenua HUD (alpha → cameraShotUiDimAlpha).
+   * Con zoom out / fine shot: torna a alpha 1 in cameraShotUiFadeMs.
+   */
+  setCameraShotUiDimmed(dimmed: boolean): void {
+    if (!gameplayCfg.cameraShotLaunchEnabled) {
+      return;
+    }
+
+    const targets = this.#getCameraShotUiAlphaTargets();
+    const dest = dimmed ? gameplayCfg.cameraShotUiDimAlpha : 1;
+    const duration = gameplayCfg.cameraShotUiFadeMs;
+
+    for (const t of targets) {
+      this.scene.tweens.killTweensOf(t);
+    }
+
+    if (targets.length === 0) {
+      return;
+    }
+
+    this.scene.tweens.add({
+      targets,
+      alpha: dest,
+      duration,
+      ease: "Linear",
+    });
+  }
+
+  /** Ripristino immediato (es. snap camera / reset scena). */
+  resetCameraShotUiAlphaImmediate(): void {
+    const targets = this.#getCameraShotUiAlphaTargets();
+
+    for (const t of targets) {
+      this.scene.tweens.killTweensOf(t);
+      (t as Phaser.GameObjects.Container).setAlpha(1);
+    }
   }
 
   #createBackgroundGame() {
@@ -136,6 +213,7 @@ export class UIManager {
         bgLogoTopFill.setScale(dynamicScale);
         bgLogoTopFill.setDepth(LOGO_BAND_DEPTH);
         bgLogoTopFill.setScrollFactor(0);
+        this.cameraShotUiLogoBandTargets.push(bgLogoTopFill);
       }
 
       // backgroundLogo principale
@@ -162,6 +240,7 @@ export class UIManager {
 
       // IMPORTANTE: regola origine con setOrigin-like comportamento
       logoContainer.setPosition(this.scene.scale.width / 2, safeTop); //! notch Area
+      this.cameraShotUiLogoBandTargets.push(logoContainer);
     }
   }
 
@@ -180,6 +259,13 @@ export class UIManager {
     return this.gameScene.setDynamicValueBasedOnScale(0.4, 0.8);
   }
 
+  /** Distanza in px schermo dal centro pannello score al bordo inferiore del background (per posizionare la minimap). */
+  #getScorePanelHalfHeightScreenPx(): number {
+    const panelScale = this.#getScorePanelLocalScale();
+
+    return this.scorePanelBgPlayer.displayHeight * 0.5 * panelScale;
+  }
+
   #createContainerScore() {
     const centerX = this.#getScoreHudInsetFromScreenEdge();
     const centerY = this.#getScoreHudCenterY();
@@ -187,7 +273,7 @@ export class UIManager {
     this.scoreContainer = this.scene.add.container(centerX, centerY);
     this.scoreContainer.setScrollFactor(0).setDepth(HUD_DEPTH);
 
-    const backgroundScore = this.scene.add
+    this.scorePanelBgPlayer = this.scene.add
       .image(0, 0, assetConf.image.backgroundScore)
       .setOrigin(0.5)
       .setScale(1.4);
@@ -206,8 +292,11 @@ export class UIManager {
       .setOrigin(0.5)
       .setScale(1.2);
 
-    this.scoreContainer.add([backgroundScore, this.scoreHudPlayerBallIcon, this.scoreText]);
+    this.scoreContainer.add([this.scorePanelBgPlayer, this.scoreHudPlayerBallIcon, this.scoreText]);
     this.scoreContainer.setScale(this.#getScorePanelLocalScale());
+
+    this.scoreText.setVisible(gameplayCfg.scoreHudDistanceTextEnabled);
+    this.scoreHudPlayerBallIcon.setVisible(gameplayCfg.scoreHudPanelBallIconEnabled);
   }
 
   /** Specchio del pannello player: stesso bg, icon a destra, testo a sinistra, stesso inset dal bordo destro. */
@@ -218,7 +307,7 @@ export class UIManager {
     this.scoreEnemyContainer = this.scene.add.container(centerX, centerY);
     this.scoreEnemyContainer.setScrollFactor(0).setDepth(HUD_DEPTH);
 
-    const backgroundScoreEnemy = this.scene.add
+    this.scorePanelBgEnemy = this.scene.add
       .image(0, 0, assetConf.image.backgroundScore)
       .setOrigin(0.5)
       .setScale(1.4);
@@ -238,11 +327,14 @@ export class UIManager {
       .setScale(UIManager.SCORE_HUD_BALL_ICON_BASE_SCALE);
 
     this.scoreEnemyContainer.add([
-      backgroundScoreEnemy,
+      this.scorePanelBgEnemy,
       this.scoreEnemyText,
       this.scoreHudEnemyBallIcon,
     ]);
     this.scoreEnemyContainer.setScale(this.#getScorePanelLocalScale());
+
+    this.scoreEnemyText.setVisible(gameplayCfg.scoreHudDistanceTextEnabled);
+    this.scoreHudEnemyBallIcon.setVisible(gameplayCfg.scoreHudPanelBallIconEnabled);
   }
 
   #createLaneMinimapRadar(): void {
@@ -267,7 +359,7 @@ export class UIManager {
   }
 
   /**
-   * Centro schermo del pannello minimap: sotto le chip player (stesso inset sinistro del punteggio).
+   * Centro schermo del pannello minimap: sotto il pannello score player (stesso inset sinistro del punteggio).
    */
   #getLaneMinimapScreenPosition(): {x: number; y: number} {
     const inset =
@@ -277,13 +369,7 @@ export class UIManager {
         gameplayCfg.laneMinimapShiftLeftPxMax,
       );
     const centerY = this.#getScoreHudCenterY();
-    const panelScale = this.#getScorePanelLocalScale();
-    const baseY = this.gameScene.setDynamicValueBasedOnScale(112, 178);
-    const chipS =
-      this.shotChipBaseScale > 0
-        ? this.shotChipBaseScale
-        : this.gameScene.setDynamicValueBasedOnScale(0.64, 1.04);
-    const chipR = Math.max(40, 110 * chipS * 0.5) * panelScale;
+    const panelBottom = this.#getScorePanelHalfHeightScreenPx();
     const gap = this.gameScene.setDynamicValueBasedOnScale(
       gameplayCfg.laneMinimapOffsetBelowShotChipsPxMin,
       gameplayCfg.laneMinimapOffsetBelowShotChipsPxMax,
@@ -294,7 +380,7 @@ export class UIManager {
         gameplayCfg.laneMinimapHeightPxMax,
       ) * 0.5;
 
-    const y = centerY + baseY * panelScale + chipR + gap + mapHalfH;
+    const y = centerY + panelBottom + gap + mapHalfH;
     const minX = this.gameScene.setDynamicValueBasedOnScale(20, 40);
 
     return {x: Math.max(minX, inset), y};
@@ -398,21 +484,44 @@ export class UIManager {
 
     const nPlayer = gameplayCfg.maxPlayerShots;
     const nEnemy = gameplayCfg.maxEnemyShots;
-    const scale = this.gameScene.setDynamicValueBasedOnScale(0.64, 1.04);
+    const scale =
+      this.gameScene.setDynamicValueBasedOnScale(0.64, 1.04) *
+      gameplayCfg.scoreHudShotChipsScaleMul;
 
     this.shotChipBaseScale = scale;
-    const spacing = this.gameScene.setDynamicValueBasedOnScale(88, 138);
-    const baseY = this.gameScene.setDynamicValueBasedOnScale(112, 178);
+    const spacingBase = this.gameScene.setDynamicValueBasedOnScale(88, 138);
+    const chipY = gameplayCfg.scoreHudShotChipsLocalOffsetY;
+    const sideInset = this.gameScene.setDynamicValueBasedOnScale(
+      gameplayCfg.scoreHudShotChipsBgSideInsetPxMin,
+      gameplayCfg.scoreHudShotChipsBgSideInsetPxMax,
+    );
+    const chipDisplayW = gameplayCfg.scoreHudShotChipsLayoutRefWidthPx * scale;
 
-    const anchorPlayer = this.gameScene.setDynamicValueBasedOnScale(-132, -118);
+    const spacingPlayer = UIManager.clampShotChipSpacingToBg(
+      nPlayer,
+      spacingBase,
+      this.scorePanelBgPlayer.displayWidth,
+      sideInset,
+      chipDisplayW,
+    );
+    const spacingEnemy = UIManager.clampShotChipSpacingToBg(
+      nEnemy,
+      spacingBase,
+      this.scorePanelBgEnemy.displayWidth,
+      sideInset,
+      chipDisplayW,
+    );
+
+    const x0Player = nPlayer <= 1 ? 0 : (-(nPlayer - 1) * spacingPlayer) / 2;
 
     for (let idx = 0; idx < nPlayer; idx++) {
+      const x = x0Player + idx * spacingPlayer;
       const bg = this.scene.add
-        .image(anchorPlayer + idx * spacing, baseY, assetConf.image.iconScore_bg_white)
+        .image(x, chipY, assetConf.image.iconScore_bg_white)
         .setOrigin(0.5)
         .setScale(scale);
       const icon = this.scene.add
-        .image(anchorPlayer + idx * spacing, baseY, assetConf.image.iconScore_Player)
+        .image(x, chipY, assetConf.image.iconScore_Player)
         .setOrigin(0.5)
         .setScale(scale);
 
@@ -421,15 +530,16 @@ export class UIManager {
       this.playerShotIcons.push(icon);
     }
 
-    const anchorEnemy = this.gameScene.setDynamicValueBasedOnScale(132, 118);
+    const x0Enemy = nEnemy <= 1 ? 0 : ((nEnemy - 1) * spacingEnemy) / 2;
 
     for (let idx = 0; idx < nEnemy; idx++) {
+      const x = x0Enemy - idx * spacingEnemy;
       const bg = this.scene.add
-        .image(anchorEnemy - idx * spacing, baseY, assetConf.image.iconScore_bg_white)
+        .image(x, chipY, assetConf.image.iconScore_bg_white)
         .setOrigin(0.5)
         .setScale(scale);
       const icon = this.scene.add
-        .image(anchorEnemy - idx * spacing, baseY, assetConf.image.iconScore_Enemy)
+        .image(x, chipY, assetConf.image.iconScore_Enemy)
         .setOrigin(0.5)
         .setScale(scale);
 
@@ -441,8 +551,21 @@ export class UIManager {
     this.updateColpoVincenteShotChipTurnHighlight("neutral");
   }
 
+  #stopShotChipPulseTweens(): void {
+    const all = [
+      ...this.playerShotIcons,
+      ...this.playerShotBgIcons,
+      ...this.enemyShotIcons,
+      ...this.enemyShotBgIcons,
+    ];
+
+    for (const img of all) {
+      this.scene.tweens.killTweensOf(img);
+    }
+  }
+
   /**
-   * Ingrandisce ~20% la chip “prossima” (la più interna, ultima in lista) sul lato di chi sta tirando.
+   * Chip “prossima” (più interna): pulse scala bassa↔alta in loop; le altre a scala base.
    */
   updateColpoVincenteShotChipTurnHighlight(phase: "player" | "enemy" | "neutral"): void {
     const base = this.shotChipBaseScale;
@@ -451,20 +574,56 @@ export class UIManager {
       return;
     }
 
-    const hi = base * UIManager.SHOT_CHIP_TURN_SCALE_MUL;
+    this.#stopShotChipPulseTweens();
+
+    const low = base * gameplayCfg.scoreHudShotChipPulseScaleLowMul;
+    const high = base * gameplayCfg.scoreHudShotChipPulseScaleHighMul;
+    const halfMs = gameplayCfg.scoreHudShotChipPulseHalfCycleMs;
 
     for (let i = 0; i < this.playerShotIcons.length; i++) {
+      const icon = this.playerShotIcons[i];
+      const bgI = this.playerShotBgIcons[i];
       const isNext = phase === "player" && i === this.playerShotIcons.length - 1;
 
-      this.playerShotIcons[i].setScale(isNext ? hi : base);
-      this.playerShotBgIcons[i]?.setScale(isNext ? hi : base);
+      if (isNext) {
+        icon.setScale(low);
+        bgI?.setScale(low);
+        this.scene.tweens.add({
+          targets: [icon, bgI].filter(Boolean) as Phaser.GameObjects.Image[],
+          scaleX: high,
+          scaleY: high,
+          duration: halfMs,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+      } else {
+        icon.setScale(base);
+        bgI?.setScale(base);
+      }
     }
 
     for (let i = 0; i < this.enemyShotIcons.length; i++) {
+      const icon = this.enemyShotIcons[i];
+      const bgI = this.enemyShotBgIcons[i];
       const isNext = phase === "enemy" && i === this.enemyShotIcons.length - 1;
 
-      this.enemyShotIcons[i].setScale(isNext ? hi : base);
-      this.enemyShotBgIcons[i]?.setScale(isNext ? hi : base);
+      if (isNext) {
+        icon.setScale(low);
+        bgI?.setScale(low);
+        this.scene.tweens.add({
+          targets: [icon, bgI].filter(Boolean) as Phaser.GameObjects.Image[],
+          scaleX: high,
+          scaleY: high,
+          duration: halfMs,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+      } else {
+        icon.setScale(base);
+        bgI?.setScale(base);
+      }
     }
   }
 
@@ -533,6 +692,12 @@ export class UIManager {
    * Passa `null` se un lato non ha ancora tiri con distanza valida (nessun effetto).
    */
   updateWinningHudByDistance(playerM: number | null, enemyM: number | null): void {
+    if (!gameplayCfg.scoreHudPanelBallIconEnabled) {
+      this.#clearWinningHudBallEffect();
+
+      return;
+    }
+
     if (
       playerM === null ||
       enemyM === null ||

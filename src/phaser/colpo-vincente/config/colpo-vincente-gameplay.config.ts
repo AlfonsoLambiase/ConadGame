@@ -120,22 +120,26 @@ export const ColpoVincenteGameplayConfig = {
   ballTrailMaxParticles: 900,
 
   /**
-   * Camera al lancio: zoom leggero subito, dopo `cameraShotPanDelayMs` pan verso l’alto (mondo Y−),
-   * poi ritorno dolce all’ancora (lerp ogni frame).
+   * Camera al lancio: delay -> zoom in + segui palla -> return.
+   * Flusso: lancio -> attesa cameraShotDelayMs -> zoom in fluido + follow palla
+   * -> dopo cameraShotFollowMaxMs ritorno dolce all ancora.
    */
   cameraShotLaunchEnabled: true,
-  cameraShotZoomMul: 1.55, //! Aumenta zoom 1.255
-  cameraShotZoomLerp: 0.085,
-  /** ms: solo zoom, ancora centrata; poi inizia il pan verso sopra. */
-  cameraShotPanDelayMs: 100,
-  /** Quanto spostare il centro camera verso l’alto corsia (pixel mondo). */
-  cameraShotPanUpWorldPx: 50, //! Sale piu in alto lo zoom 38
-  cameraShotPanLerp: 0.072,
-  /** Durata massima fase “in” prima del ritorno (ms). */
-  cameraShotInPhaseMaxMs: 2000, //! dura piu tempo lo zoom in zoomIn 850
+  /** ms di attesa dopo il lancio prima che la camera inizi a muoversi. */
+  cameraShotDelayMs: 500,
+  /** Moltiplicatore zoom rispetto allo zoom di ancoraggio. */
+  cameraShotZoomMul: 1.55,
+  /** Lerp zoom per frame (0-1): piu alto = zoom piu rapido. */
+  cameraShotZoomLerp: 0.06,
+  cameraShotPanLerp: 0.055,
+  cameraShotFollowMaxMs: 2000,
   cameraShotReturnLerp: 0.065,
   cameraShotReturnEpsilonPx: 0.75,
   cameraShotReturnEpsilonZoom: 0.0035,
+  /** Alpha HUD (pannelli, minimap, fascia logo) durante zoom shot. */
+  cameraShotUiDimAlpha: 0.5,
+  /** Durata tween alpha HUD 1↔dim durante zoom in / zoom out (ms). */
+  cameraShotUiFadeMs: 500,
 
   /** ms: dissolvenza + rimpicciolimento icona munizione quando viene consumata al tiro. */
   shotChipConsumeEffectDurationMs: 280,
@@ -151,13 +155,20 @@ export const ColpoVincenteGameplayConfig = {
   hudWinningDistanceTieEpsilonM: 0.004,
   /** Pausa dopo il tiro giocatore prima che compaia la ball_enemy (ms). */
   delayMsAfterPlayerShotBeforeEnemyMs: 3000,
-  /** Pausa dopo il tiro nemico prima della prossima ball_player / fine partita (ms). */
+  /** Pausa dopo il tiro nemico prima della prossima ball_player (ms). Non usato per l’ultimo tiro nemico (vedi matchEnd*). */
   nextPlayerBallSpawnDelayMs: 2000,
+  /**
+   * Ultimo tiro nemico: dopo lo zoom-out camera (ritorno a idle), aspetta questi ms
+   * e solo poi avvia il controllo palle ferme + risoluzione vittoria/sconfitta/pareggio.
+   */
+  matchEndResolveDelayAfterCameraMs: 2000,
   /**
    * Fine partita: il testo risultato non compare prima di questo tempo dall’istante in cui l’IA
    * ha lanciato l’ultima ball_enemy. Se l’esito viene calcolato dopo, non si aspetta oltre.
    */
   colpoEndOverlayMinMsAfterLastEnemyLaunch: 2000,
+  /** ms con il testo risultato fermo a piena opacità prima della dissolvenza (tempo per il resoconto). */
+  colpoEndOverlayHoldBeforeFadeMs: 2000,
   /** Dissolvenza + scorrimento verso il basso del testo risultato (ms). */
   colpoEndOverlayTextFadeDurationMs: 1000,
   /** Durata animazione freccia mira nemica (simula il tirare indietro). ~2s in più rispetto alla versione breve. */
@@ -274,15 +285,47 @@ export const ColpoVincenteGameplayConfig = {
   laneMinimapOffsetBelowShotChipsPxMin: 8,
   laneMinimapOffsetBelowShotChipsPxMax: 16,
   laneMinimapColorBoccino: 0xfff6d6,
-  laneMinimapColorPlayer: 0x4db8ff,
-  laneMinimapColorEnemy: 0xff7733,
+  /** Minimap: invertiti rispetto agli HUD corsia (player = arancio, nemico = azzurro). */
+  laneMinimapColorPlayer: 0xff7733,
+  laneMinimapColorEnemy: 0x4db8ff,
+
+  /**
+   * Testo distanza (metri) nei pannelli score. false = nascosto; i setter continuano ad aggiornare il testo per riattivare senza toccare il codice.
+   */
+  scoreHudDistanceTextEnabled: false,
+  /**
+   * Icone palla grandi nel pannello score (chi sta vincendo per distanza). false = nascoste; la logica in `updateWinningHudByDistance` resta ma non mostra effetti.
+   */
+  scoreHudPanelBallIconEnabled: false,
+  /** Offset Y locale (px) delle shot chip rispetto al centro del background score (0 = centrate verticalmente nel pannello). */
+  scoreHudShotChipsLocalOffsetY: 0,
+  /** Moltiplicatore sulla scala dinamica delle chip (1 = come prima; <1 = più piccole). */
+  scoreHudShotChipsScaleMul: 0.86,
+  /**
+   * Margine minimo tra bordo del background score e chip (px locali pannello, interpolato min→max come altri HUD).
+   * Lo spacing orizzontale viene ridotto se serve per restare dentro.
+   */
+  scoreHudShotChipsBgSideInsetPxMin: 22,
+  scoreHudShotChipsBgSideInsetPxMax: 36,
+  /** Larghezza di riferimento texture chip (px) per calcolo ingombro orizzontale con la scala corrente. */
+  scoreHudShotChipsLayoutRefWidthPx: 110,
+  /** Chip “prossimo tiro”: scala minima nel pulse (moltiplicatore su scala base). */
+  scoreHudShotChipPulseScaleLowMul: 0.95,
+  /** Chip “prossimo tiro”: scala massima nel pulse. */
+  scoreHudShotChipPulseScaleHighMul: 1.15,
+  /** Durata tween da low→high (stesso tempo high→low con yoyo), metà ciclo visivo (ms). */
+  scoreHudShotChipPulseHalfCycleMs: 520,
 
   /** PNG sopra la palla più vicina al boccino (ball_player in campo + nemiche). */
   closestBallIndicatorEnabled: true,
   /** Scala texture indicatore rispetto alla larghezza display della palla di riferimento. */
-  ballIndicatorScaleMul: 0.42,
+  ballIndicatorScaleMul: 1.0,
   /** Distanza extra in pixel mondo tra bordo superiore palla e pivot basso indicatore (origin 0.5,1). */
   ballIndicatorGapAboveBallPx: 6,
+  /** Ampiezza oscillazione verticale (world px, sin ±1). */
+  ballIndicatorBobAmplitudePx: 5,
+  /** Durata di un ciclo completo su-giù-su (ms). */
+  ballIndicatorBobCycleMs: 1100,
 
   /** Ombra ball_player: depth sotto la palla. */
   laneShadowDepthDelta: 0.04,

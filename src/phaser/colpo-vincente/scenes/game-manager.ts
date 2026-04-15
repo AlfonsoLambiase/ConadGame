@@ -1,4 +1,4 @@
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type {LaneMinimapBlip} from "../components/UIManager";
 
 import * as Phaser from "phaser";
@@ -21,7 +21,7 @@ type MatchPhase =
 
 /** Palle da considerare per il bandierino post-tiro: stessa lista = tutte ferme prima di riattivare. */
 type FlagIdleTrackedBall = {
-  ball: Phaser.Physics.Matter.Image;
+  ball: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image;
   maxSpeed: number;
 };
 
@@ -181,14 +181,14 @@ export class GameManager extends Phaser.Scene {
     alpha: 0,
   };
 
-  ballPlayer!: Phaser.Physics.Matter.Image;
+  ballPlayer!: Phaser.Physics.Matter.Sprite;
   private ballBoccino?: Phaser.Physics.Matter.Image;
   private boccinoShadow?: Phaser.GameObjects.Image;
-  private flagMarker?: Phaser.GameObjects.Image;
+  private flagMarker?: Phaser.GameObjects.Sprite;
   /** PNG sopra la palla (player o nemica) più vicina al boccino. */
   private closestBallIndicator?: Phaser.GameObjects.Image;
   /** Palla di cui seguire posizione (boccino / nemico) mentre il bandierino è visibile. */
-  private flagFollowTarget?: Phaser.Physics.Matter.Image;
+  private flagFollowTarget?: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image;
   private matchPhase: MatchPhase = "boccino_pending";
   private boccinoStoppedFrames = 0;
   private boccinoLaunchedAt = 0;
@@ -208,26 +208,28 @@ export class GameManager extends Phaser.Scene {
   private flagReactivateDelayPending = false;
   private nextBallSpawnTimer?: Phaser.Time.TimerEvent;
   /** Durante la mira IA: freccia agganciata a questa palla per il depth. */
-  private enemyBallForAimArrow?: Phaser.Physics.Matter.Image;
+  private enemyBallForAimArrow?: Phaser.Physics.Matter.Sprite;
   private enemyAimTween?: Phaser.Tweens.Tween;
 
   /** Palle nemiche da considerare per la rivalutazione del bandierino (registra quando le crei). */
-  private readonly ballEnemies: Phaser.Physics.Matter.Image[] = [];
+  private readonly ballEnemies: Phaser.Physics.Matter.Sprite[] = [];
 
   /** Scia particelle: una emitter per ogni palla lanciata (player o enemy). */
   private readonly ballTrailEmitters = new Map<
-    Phaser.Physics.Matter.Image,
+    Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
     Phaser.GameObjects.Particles.ParticleEmitter
   >();
 
   private static readonly BALL_TRAIL_TEXTURE_KEY = "__cv_ball_trail_bold";
 
   /** Palle giocatore già lanciate: restano in fisica, non più prensili. */
-  private readonly releasedPlayerBalls: Phaser.Physics.Matter.Image[] = [];
+  private readonly releasedPlayerBalls: Phaser.Physics.Matter.Sprite[] = [];
   private playerShotsUsed = 0;
   private enemyShotsUsed = 0;
   /** `time.now` al completamento del lancio dell’ultima ball_enemy (fine match); 0 se non applicabile. */
   private colpoMatchEndEnemyLaunchAtMs = 0;
+  /** Ultimo tiro nemico: attendi camera a idle (zoom out) poi delay prima di `scheduleMatchResolveWhenFieldSettled`. */
+  private matchEndAwaitCameraIdleForResolve = false;
 
   private ballRestWorld = new Phaser.Math.Vector2();
   /** Scala base (vicino al giocatore); la prospettiva la moltiplica in base a Y. */
@@ -235,11 +237,11 @@ export class GameManager extends Phaser.Scene {
   private ballDragging = false;
   /** Un'ombra per ogni `ball_player` (in campo + quella controllabile). */
   private readonly playerBallShadowByBall = new Map<
-    Phaser.Physics.Matter.Image,
+    Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
     Phaser.GameObjects.Image
   >();
   private readonly playerBallColliderDebugByBall = new Map<
-    Phaser.Physics.Matter.Image,
+    Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
     Phaser.GameObjects.Graphics
   >();
   private boccinoColliderDebug?: Phaser.GameObjects.Graphics;
@@ -251,11 +253,14 @@ export class GameManager extends Phaser.Scene {
   private camDefaultMidY = 0;
   private camDefaultZoom = 1;
 
-  private camShotPhase: "idle" | "in" | "return" = "idle";
+  private camShotPhase: "idle" | "delay" | "follow" | "return" = "idle";
   private camShotAnchorMidX = 0;
   private camShotAnchorMidY = 0;
   private camShotAnchorZoom = 1;
   private camShotStartedAt = 0;
+  private camShotFollowStartedAt = 0;
+  /** Palla lanciata che la camera deve seguire durante lo shot. */
+  private camShotFollowBall?: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image;
 
   /**
    * Quota della |vx| convertita in spinta verso l’alto (schermo) dopo urto sui corrimano:
@@ -431,6 +436,7 @@ export class GameManager extends Phaser.Scene {
   create() {
     console.log("Start Scene Colpo Vincente");
 
+    this.createBallAndFlagAnimations();
     this.computeLayoutDimensions();
     this.createLaneAndWalls();
     this.captureDefaultCameraState();
@@ -448,6 +454,44 @@ export class GameManager extends Phaser.Scene {
     });
   }
 
+  private createBallAndFlagAnimations(): void {
+    if (!this.anims.exists(assetConf.keyAnim.animBallPlayerSpin)) {
+      this.anims.create({
+        key: assetConf.keyAnim.animBallPlayerSpin,
+        frames: this.anims.generateFrameNumbers(assetConf.spritesheet.animBall_Player.key, {
+          start: 0,
+          end: 60,
+        }),
+        frameRate: 30,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists(assetConf.keyAnim.animBallEnemySpin)) {
+      this.anims.create({
+        key: assetConf.keyAnim.animBallEnemySpin,
+        frames: this.anims.generateFrameNumbers(assetConf.spritesheet.animBall_Enemy.key, {
+          start: 0,
+          end: 60,
+        }),
+        frameRate: 30,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists(assetConf.keyAnim.animBandieraLoop)) {
+      this.anims.create({
+        key: assetConf.keyAnim.animBandieraLoop,
+        frames: this.anims.generateFrameNumbers(assetConf.spritesheet.animBandiera.key, {
+          start: 0,
+          end: 37,
+        }),
+        frameRate: 25,
+        repeat: -1,
+      });
+    }
+  }
+
   update(): void {
     this.updateBoccinoSettling();
     this.updateBoccinoDistanceHud();
@@ -455,6 +499,7 @@ export class GameManager extends Phaser.Scene {
     this.updateClosestBallIndicator();
     this.updateBallTrailEmittingState();
     this.updateCameraShotLaunch();
+    this.updateMatchEndAwaitCameraIdleForResolve();
     this.updateBoccinoColliderDebugVisuals();
     this.updatePlayerBallColliderDebugVisuals();
     this.updateFlagFollowWorldPosition();
@@ -471,6 +516,7 @@ export class GameManager extends Phaser.Scene {
       this.updateBallPerspectiveScale();
       this.clampBallMaxSpeed();
       this.updateFlagWhenAllBallsIdle();
+      this.updateBallSpinAnimations();
     }
 
     this.gameScene?.uiManager?.updateLaneMinimap(this.buildLaneMinimapBlips());
@@ -501,6 +547,73 @@ export class GameManager extends Phaser.Scene {
 
       ball.setScale(this.ballPerspectiveBaseScale * mul);
     });
+  }
+
+  /**
+   * Restituisce il moltiplicatore di prospettiva per una data Y (stessa formula di `updateBallPerspectiveScale`).
+   * 1 = vicino al giocatore (scala piena), `dynPerspectiveMinMul` = fondo corsia.
+   */
+  private getPerspectiveMulAtY(y: number): number {
+    const yNear = this.ballRestWorld.y;
+    const yFar = this.laneY + this.dynPerspectiveYFarDesign * this.laneScale;
+    const span = Math.max(yNear - yFar, 64);
+    const tRaw = Phaser.Math.Clamp((y - yFar) / span, 0, 1);
+    const t = Math.pow(tRaw, 1.12);
+
+    return Phaser.Math.Linear(this.dynPerspectiveMinMul, 1, t);
+  }
+
+  /**
+   * Distanza euclidea tra due punti corretta per la prospettiva.
+   * La componente Y di ciascun punto viene divisa per il suo `perspectiveMul`,
+   * così 1 px in alto (oggetti rimpiccioliti) "pesa" di più nel calcolo.
+   */
+  private perspectiveCorrectedDistance(x1: number, y1: number, x2: number, y2: number): number {
+    const mul1 = this.getPerspectiveMulAtY(y1);
+    const mul2 = this.getPerspectiveMulAtY(y2);
+    const corrY1 = y1 / mul1;
+    const corrY2 = y2 / mul2;
+
+    return Math.hypot(x2 - x1, corrY2 - corrY1);
+  }
+
+  /** Regola la velocità di riproduzione dell'anim di spin in base alla velocità della palla. */
+  private updateBallSpinAnimations(): void {
+    const speedThreshold = 0; // sotto questa velocità la palla è considerata "ferma" e l'animazione si mette in pausa. Alzalo se vuoi che si fermi prima, abbassalo se vuoi che giri anche a velocità bassissime.
+    const maxSpeedForAnim = 5; // la velocità a cui il framerate raggiunge il massimo. Abbassalo (es. 6) e la rotazione arriverà a velocità piena prima; alzalo (es. 20) e ci vorrà più velocità per far girare veloce la palla.
+    const baseFrameRate = 80; // il framerate massimo dell'animazione (quando la palla va a maxSpeedForAnim o più). Alzalo per una rotazione più frenetica, abbassalo per un cap più calmo.
+
+    const syncSpin = (ball: Phaser.Physics.Matter.Sprite): void => {
+      if (!ball.active || !ball.body || !ball.anims) {
+        return;
+      }
+
+      const body = ball.body as MatterJS.BodyType;
+      const speed = Math.hypot(body.velocity.x, body.velocity.y);
+
+      if (speed <= speedThreshold) {
+        if (ball.anims.isPlaying) {
+          ball.anims.pause();
+        }
+
+        return;
+      }
+
+      const t = Phaser.Math.Clamp(speed / maxSpeedForAnim, 0, 1);
+      const rate = Phaser.Math.Linear(4, baseFrameRate, t);
+
+      if (!ball.anims.isPlaying) {
+        ball.anims.resume();
+      }
+
+      ball.anims.msPerFrame = 1000 / rate;
+    };
+
+    this.forEachPlayerBallForPerspective((b) => syncSpin(b as Phaser.Physics.Matter.Sprite));
+
+    for (const e of this.ballEnemies) {
+      syncSpin(e);
+    }
   }
 
   private updateFlagFollowWorldPosition(): void {
@@ -566,8 +679,8 @@ export class GameManager extends Phaser.Scene {
       }
     }
 
-    const seen = new Set<Phaser.Physics.Matter.Image>();
-    const playerBalls: Phaser.Physics.Matter.Image[] = [];
+    const seen = new Set<Phaser.Physics.Matter.Sprite>();
+    const playerBalls: Phaser.Physics.Matter.Sprite[] = [];
 
     for (const b of this.releasedPlayerBalls) {
       if (b.active && !seen.has(b)) {
@@ -637,7 +750,9 @@ export class GameManager extends Phaser.Scene {
     g.destroy();
   }
 
-  private removeBallTrailEmitter(ball: Phaser.Physics.Matter.Image): void {
+  private removeBallTrailEmitter(
+    ball: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
+  ): void {
     const emitter = this.ballTrailEmitters.get(ball);
 
     if (!emitter) {
@@ -658,7 +773,10 @@ export class GameManager extends Phaser.Scene {
   /**
    * Aggancia un ParticleEmitter che segue la palla; emissione on/off in `updateBallTrailEmittingState`.
    */
-  private attachBallTrailEmitter(ball: Phaser.Physics.Matter.Image, tint: number): void {
+  private attachBallTrailEmitter(
+    ball: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
+    tint: number,
+  ): void {
     if (!gameplayCfg.ballTrailEnabled || !ball?.active) {
       return;
     }
@@ -759,9 +877,13 @@ export class GameManager extends Phaser.Scene {
     cam.setZoom(this.camDefaultZoom);
     cam.centerOn(this.camDefaultMidX, this.camDefaultMidY);
     this.camShotPhase = "idle";
+    this.camShotFollowBall = undefined;
+    this.gameScene?.uiManager?.resetCameraShotUiAlphaImmediate();
   }
 
-  private beginCameraShotOnLaunch(): void {
+  private beginCameraShotOnLaunch(
+    followBall?: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
+  ): void {
     if (!gameplayCfg.cameraShotLaunchEnabled || this.isGameOver) {
       return;
     }
@@ -772,7 +894,9 @@ export class GameManager extends Phaser.Scene {
     this.camShotAnchorMidY = cam.midPoint.y;
     this.camShotAnchorZoom = cam.zoom;
     this.camShotStartedAt = this.time.now;
-    this.camShotPhase = "in";
+    this.camShotFollowStartedAt = 0;
+    this.camShotFollowBall = followBall;
+    this.camShotPhase = "delay";
   }
 
   private snapCameraShotToAnchorIfActive(): void {
@@ -785,6 +909,38 @@ export class GameManager extends Phaser.Scene {
     cam.setZoom(this.camShotAnchorZoom);
     cam.centerOn(this.camShotAnchorMidX, this.camShotAnchorMidY);
     this.camShotPhase = "idle";
+    this.camShotFollowBall = undefined;
+    this.gameScene?.uiManager?.resetCameraShotUiAlphaImmediate();
+  }
+
+  /**
+   * Limiti mondo del PNG bg_Top: la camera non può mostrare aree fuori da questo rettangolo.
+   */
+  private getCameraBgBounds(): {left: number; right: number; top: number; bottom: number} {
+    const {designW, designH} = this.getLaneDesignDimensions();
+    const left = this.laneX - designW * this.laneScale * 0.5;
+    const right = this.laneX + designW * this.laneScale * 0.5;
+    const top = this.laneY;
+    const bottom = this.laneY + designH * this.laneScale;
+
+    return {left, right, top, bottom};
+  }
+
+  /** Clampa centro camera perché il viewport zoomato non esca dal PNG. */
+  private clampCameraCenterToBgBounds(
+    cx: number,
+    cy: number,
+    zoom: number,
+  ): {cx: number; cy: number} {
+    const cam = this.cameras.main;
+    const halfW = cam.width / (2 * zoom);
+    const halfH = cam.height / (2 * zoom);
+    const bounds = this.getCameraBgBounds();
+
+    return {
+      cx: Phaser.Math.Clamp(cx, bounds.left + halfW, bounds.right - halfW),
+      cy: Phaser.Math.Clamp(cy, bounds.top + halfH, bounds.bottom - halfH),
+    };
   }
 
   private updateCameraShotLaunch(): void {
@@ -795,70 +951,115 @@ export class GameManager extends Phaser.Scene {
     const cam = this.cameras.main;
     const cfg = gameplayCfg;
 
-    if (this.isGameOver) {
+    if (this.isGameOver && this.camShotPhase !== "return") {
+      const wasFollow = this.camShotPhase === "follow";
+
       this.camShotPhase = "return";
+      if (wasFollow) {
+        this.gameScene?.uiManager?.setCameraShotUiDimmed(false);
+      }
     }
 
-    const elapsed = this.time.now - this.camShotStartedAt;
-    const targetZoom = this.camShotAnchorZoom * cfg.cameraShotZoomMul;
-
-    if (this.camShotPhase === "in") {
-      const newZoom = Phaser.Math.Linear(cam.zoom, targetZoom, cfg.cameraShotZoomLerp);
-
-      cam.setZoom(newZoom);
-
-      if (elapsed < cfg.cameraShotPanDelayMs) {
-        cam.centerOn(this.camShotAnchorMidX, this.camShotAnchorMidY);
-      } else {
-        const panTargetY = this.camShotAnchorMidY - cfg.cameraShotPanUpWorldPx;
-        const mp = cam.midPoint;
-
-        cam.centerOn(
-          Phaser.Math.Linear(mp.x, this.camShotAnchorMidX, cfg.cameraShotPanLerp),
-          Phaser.Math.Linear(mp.y, panTargetY, cfg.cameraShotPanLerp),
-        );
+    // --- DELAY: la camera resta ferma ---
+    if (this.camShotPhase === "delay") {
+      if (this.time.now - this.camShotStartedAt >= cfg.cameraShotDelayMs) {
+        this.camShotPhase = "follow";
+        this.camShotFollowStartedAt = this.time.now;
+        this.gameScene?.uiManager?.setCameraShotUiDimmed(true);
       }
 
-      if (elapsed >= cfg.cameraShotInPhaseMaxMs) {
+      return;
+    }
+
+    // --- FOLLOW: segue la palla con lerp + ramp-up sincronizzato zoom+pan ---
+    if (this.camShotPhase === "follow") {
+      const elapsed = this.time.now - this.camShotFollowStartedAt;
+
+      if (elapsed > cfg.cameraShotFollowMaxMs) {
         this.camShotPhase = "return";
+        this.gameScene?.uiManager?.setCameraShotUiDimmed(false);
+
+        return;
       }
+
+      const rampT = Phaser.Math.Clamp(elapsed / 600, 0, 1);
+      const lerp = cfg.cameraShotPanLerp * rampT;
+
+      const targetZoom = this.camShotAnchorZoom * cfg.cameraShotZoomMul;
+      const newZoom = Phaser.Math.Linear(cam.zoom, targetZoom, lerp);
+
+      if (this.camShotFollowBall?.active && this.camShotFollowBall.body) {
+        const bx = this.camShotFollowBall.x;
+        const by = this.camShotFollowBall.y;
+        const clamped = this.clampCameraCenterToBgBounds(bx, by, newZoom);
+
+        cam.setZoom(newZoom);
+        cam.centerOn(
+          Phaser.Math.Linear(cam.midPoint.x, clamped.cx, lerp),
+          Phaser.Math.Linear(cam.midPoint.y, clamped.cy, lerp),
+        );
+      } else {
+        cam.setZoom(newZoom);
+      }
+
+      return;
     }
 
+    // --- RETURN: torna alla posizione iniziale con lerp sincronizzato ---
     if (this.camShotPhase === "return") {
-      const mp = cam.midPoint;
-      const newZoom = Phaser.Math.Linear(
-        cam.zoom,
-        this.camShotAnchorZoom,
-        cfg.cameraShotReturnLerp,
-      );
+      const lerp = cfg.cameraShotReturnLerp;
+
+      const newZoom = Phaser.Math.Linear(cam.zoom, this.camShotAnchorZoom, lerp);
+      const newX = Phaser.Math.Linear(cam.midPoint.x, this.camShotAnchorMidX, lerp);
+      const newY = Phaser.Math.Linear(cam.midPoint.y, this.camShotAnchorMidY, lerp);
 
       cam.setZoom(newZoom);
+      cam.centerOn(newX, newY);
 
-      const nx = Phaser.Math.Linear(mp.x, this.camShotAnchorMidX, cfg.cameraShotReturnLerp);
-      const ny = Phaser.Math.Linear(mp.y, this.camShotAnchorMidY, cfg.cameraShotReturnLerp);
-
-      cam.centerOn(nx, ny);
-
-      const d = Phaser.Math.Distance.Between(
-        nx,
-        ny,
-        this.camShotAnchorMidX,
-        this.camShotAnchorMidY,
-      );
+      const dx = Math.abs(newX - this.camShotAnchorMidX);
+      const dy = Math.abs(newY - this.camShotAnchorMidY);
+      const dz = Math.abs(newZoom - this.camShotAnchorZoom);
 
       if (
-        d < cfg.cameraShotReturnEpsilonPx &&
-        Math.abs(newZoom - this.camShotAnchorZoom) < cfg.cameraShotReturnEpsilonZoom
+        dx < cfg.cameraShotReturnEpsilonPx &&
+        dy < cfg.cameraShotReturnEpsilonPx &&
+        dz < cfg.cameraShotReturnEpsilonZoom
       ) {
         cam.setZoom(this.camShotAnchorZoom);
         cam.centerOn(this.camShotAnchorMidX, this.camShotAnchorMidY);
         this.camShotPhase = "idle";
+        this.camShotFollowBall = undefined;
       }
     }
   }
 
+  /**
+   * Ultimo tiro nemico: zoom-out camera fino a idle, poi `matchEndResolveDelayAfterCameraMs`,
+   * poi `scheduleMatchResolveWhenFieldSettled` (palle ferme + esito).
+   */
+  private updateMatchEndAwaitCameraIdleForResolve(): void {
+    if (!this.matchEndAwaitCameraIdleForResolve || this.isGameOver) {
+      return;
+    }
+
+    const camIdle = !gameplayCfg.cameraShotLaunchEnabled || this.camShotPhase === "idle";
+
+    if (!camIdle) {
+      return;
+    }
+
+    this.matchEndAwaitCameraIdleForResolve = false;
+    this.time.delayedCall(gameplayCfg.matchEndResolveDelayAfterCameraMs, () => {
+      if (this.isGameOver) {
+        return;
+      }
+
+      this.scheduleMatchResolveWhenFieldSettled();
+    });
+  }
+
   private ensurePlayerBallShadow(
-    ball: Phaser.Physics.Matter.Image,
+    ball: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
     initialScale: number,
   ): Phaser.GameObjects.Image {
     const existing = this.playerBallShadowByBall.get(ball);
@@ -928,12 +1129,14 @@ export class GameManager extends Phaser.Scene {
     );
   }
 
-  private getPlayerBallColliderWorldRadius(ball: Phaser.Physics.Matter.Image): number {
+  private getPlayerBallColliderWorldRadius(
+    ball: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
+  ): number {
     return this.getPlayerBallColliderRadiusAtScale1() * ball.scaleX;
   }
 
   private ensurePlayerBallColliderDebug(
-    ball: Phaser.Physics.Matter.Image,
+    ball: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
   ): Phaser.GameObjects.Graphics {
     let g = this.playerBallColliderDebugByBall.get(ball);
 
@@ -963,8 +1166,8 @@ export class GameManager extends Phaser.Scene {
       return;
     }
 
-    const seen = new Set<Phaser.Physics.Matter.Image>();
-    const balls: Phaser.Physics.Matter.Image[] = [];
+    const seen = new Set<Phaser.Physics.Matter.Sprite>();
+    const balls: Phaser.Physics.Matter.Sprite[] = [];
 
     for (const b of this.releasedPlayerBalls) {
       if (b.active && !seen.has(b)) {
@@ -977,7 +1180,7 @@ export class GameManager extends Phaser.Scene {
       balls.push(this.ballPlayer);
     }
 
-    const inPlay = new Set(balls);
+    const inPlay = new Set<Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image>(balls);
 
     for (const [ball, gfx] of this.playerBallColliderDebugByBall.entries()) {
       if (!inPlay.has(ball)) {
@@ -1009,8 +1212,8 @@ export class GameManager extends Phaser.Scene {
 
   /** Ombra per ogni palla giocatore: stesso centro, scala prospettica, rotation 0. */
   private updateBallShadow(): void {
-    const seen = new Set<Phaser.Physics.Matter.Image>();
-    const balls: Phaser.Physics.Matter.Image[] = [];
+    const seen = new Set<Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image>();
+    const balls: (Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image)[] = [];
 
     for (const b of this.releasedPlayerBalls) {
       if (b.active && !seen.has(b)) {
@@ -1053,9 +1256,9 @@ export class GameManager extends Phaser.Scene {
     }
   }
 
-  private collectVisiblePlayerBallsUnique(): Phaser.Physics.Matter.Image[] {
-    const seen = new Set<Phaser.Physics.Matter.Image>();
-    const out: Phaser.Physics.Matter.Image[] = [];
+  private collectVisiblePlayerBallsUnique(): Phaser.Physics.Matter.Sprite[] {
+    const seen = new Set<Phaser.Physics.Matter.Sprite>();
+    const out: Phaser.Physics.Matter.Sprite[] = [];
 
     for (const b of this.releasedPlayerBalls) {
       if (b.active && b.body && b.visible && !seen.has(b)) {
@@ -1077,7 +1280,7 @@ export class GameManager extends Phaser.Scene {
   }
 
   /** Stesse palle nemiche usate per HUD min distanza, indicatore e `resolveMatchWinnerAndEnd`. */
-  private getEnemyBallsForDistanceAndScoring(): Phaser.Physics.Matter.Image[] {
+  private getEnemyBallsForDistanceAndScoring(): Phaser.Physics.Matter.Sprite[] {
     return this.ballEnemies.filter((b) => b.active && b.body && b.visible);
   }
 
@@ -1085,7 +1288,9 @@ export class GameManager extends Phaser.Scene {
    * Distanza minima (px, float) dal boccino tra le palle passate; solo `active && body && visible`.
    * Allineato a HUD / indicator / esito partita.
    */
-  private getMinDistancePxToBoccinoAmong(balls: readonly Phaser.Physics.Matter.Image[]): number {
+  private getMinDistancePxToBoccinoAmong(
+    balls: readonly (Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image)[],
+  ): number {
     if (!this.ballBoccino?.active || !this.ballBoccino.body) {
       return Infinity;
     }
@@ -1099,7 +1304,7 @@ export class GameManager extends Phaser.Scene {
         continue;
       }
 
-      const d = Phaser.Math.Distance.Between(bx, by, b.x, b.y);
+      const d = this.perspectiveCorrectedDistance(bx, by, b.x, b.y);
 
       if (d < min) {
         min = d;
@@ -1136,7 +1341,12 @@ export class GameManager extends Phaser.Scene {
         let minPx = Infinity;
 
         for (const b of candidates) {
-          const d = Phaser.Math.Distance.Between(this.ballBoccino.x, this.ballBoccino.y, b.x, b.y);
+          const d = this.perspectiveCorrectedDistance(
+            this.ballBoccino.x,
+            this.ballBoccino.y,
+            b.x,
+            b.y,
+          );
 
           if (d < minPx) {
             minPx = d;
@@ -1159,7 +1369,12 @@ export class GameManager extends Phaser.Scene {
         let minPxEnemy = Infinity;
 
         for (const b of enemies) {
-          const d = Phaser.Math.Distance.Between(this.ballBoccino.x, this.ballBoccino.y, b.x, b.y);
+          const d = this.perspectiveCorrectedDistance(
+            this.ballBoccino.x,
+            this.ballBoccino.y,
+            b.x,
+            b.y,
+          );
 
           if (d < minPxEnemy) {
             minPxEnemy = d;
@@ -1211,7 +1426,10 @@ export class GameManager extends Phaser.Scene {
     this.clampBodySpeed(this.ballBoccino, maxSp);
   }
 
-  private clampBodySpeed(go: Phaser.Physics.Matter.Image, maxSp: number): void {
+  private clampBodySpeed(
+    go: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
+    maxSp: number,
+  ): void {
     const body = go.body as MatterJS.BodyType;
     const sp = Math.hypot(body.velocity.x, body.velocity.y);
 
@@ -1273,38 +1491,43 @@ export class GameManager extends Phaser.Scene {
    * Palla più vicina al boccino tra **le stesse** candidate di HUD / esito: player
    * (`collectVisiblePlayerBallsUnique`) + nemiche visibili con body.
    */
-  private findClosestBallToBoccinoAmongAll(): Phaser.Physics.Matter.Image | null {
+  private findClosestBallToBoccinoAmongAll(): {
+    ball: Phaser.Physics.Matter.Sprite;
+    team: "player" | "enemy";
+  } | null {
     const boccino = this.ballBoccino;
 
     if (!boccino?.active || !boccino.body) {
       return null;
     }
 
-    let best: Phaser.Physics.Matter.Image | null = null;
+    let best: Phaser.Physics.Matter.Sprite | null = null;
+    let bestTeam: "player" | "enemy" = "player";
     let bestD = Infinity;
 
-    const consider = (b: Phaser.Physics.Matter.Image): void => {
+    const consider = (b: Phaser.Physics.Matter.Sprite, team: "player" | "enemy"): void => {
       if (!b.active || !b.visible || !b.body) {
         return;
       }
 
-      const d = Phaser.Math.Distance.Between(boccino.x, boccino.y, b.x, b.y);
+      const d = this.perspectiveCorrectedDistance(boccino.x, boccino.y, b.x, b.y);
 
       if (d < bestD) {
         bestD = d;
         best = b;
+        bestTeam = team;
       }
     };
 
     for (const b of this.collectVisiblePlayerBallsUnique()) {
-      consider(b);
+      consider(b, "player");
     }
 
     for (const b of this.getEnemyBallsForDistanceAndScoring()) {
-      consider(b);
+      consider(b, "enemy");
     }
 
-    return best;
+    return best ? {ball: best, team: bestTeam} : null;
   }
 
   private updateClosestBallIndicator(): void {
@@ -1326,32 +1549,43 @@ export class GameManager extends Phaser.Scene {
       return;
     }
 
-    /** Dopo il primo lancio nemico completato (`onEnemyTurnLaunchComplete`): prima no. */
     if (this.enemyShotsUsed < 1) {
       this.closestBallIndicator?.setVisible(false);
 
       return;
     }
 
-    const closest = this.findClosestBallToBoccinoAmongAll();
+    const result = this.findClosestBallToBoccinoAmongAll();
 
-    if (!closest) {
+    if (!result) {
       this.closestBallIndicator?.setVisible(false);
 
       return;
     }
 
+    const {ball: closest, team} = result;
+    const indicatorKey =
+      team === "player"
+        ? assetConf.image.ball_indicator_Player
+        : assetConf.image.ball_indicator_Enemy;
+
     if (!this.closestBallIndicator) {
       this.closestBallIndicator = this.add
-        .image(closest.x, closest.y, assetConf.image.ball_indicator)
+        .image(closest.x, closest.y, indicatorKey)
         .setOrigin(0.5, 1);
+    } else {
+      this.closestBallIndicator.setTexture(indicatorKey);
     }
 
     const gap = gameplayCfg.ballIndicatorGapAboveBallPx;
     const halfH = closest.displayHeight * 0.5;
+    const bobCycle = Math.max(gameplayCfg.ballIndicatorBobCycleMs, 1);
+    const bob =
+      Math.sin((this.time.now / bobCycle) * Math.PI * 2) * gameplayCfg.ballIndicatorBobAmplitudePx;
+    const baseY = closest.y - halfH - gap;
 
     this.closestBallIndicator.setVisible(true);
-    this.closestBallIndicator.setPosition(closest.x, closest.y - halfH - gap);
+    this.closestBallIndicator.setPosition(closest.x, baseY + bob);
 
     const tw = Math.max(this.closestBallIndicator.width, 1);
     const scale = (closest.displayWidth / tw) * gameplayCfg.ballIndicatorScaleMul;
@@ -1366,7 +1600,7 @@ export class GameManager extends Phaser.Scene {
    * Chiamalo quando crei una `ball_enemy` Matter così il bandierino non torna prima che sia ferma.
    * Il depth in corsia viene aggiornato ogni frame in base alla Y (`updateLaneEntityDepthsByY`).
    */
-  registerEnemyBallForFlagIdle(ball: Phaser.Physics.Matter.Image): void {
+  registerEnemyBallForFlagIdle(ball: Phaser.Physics.Matter.Sprite): void {
     if (this.ballEnemies.includes(ball)) {
       return;
     }
@@ -1375,7 +1609,7 @@ export class GameManager extends Phaser.Scene {
   }
 
   /** Chiamalo quando distruggi un nemico per non lasciare riferimenti morti. */
-  unregisterEnemyBallForFlagIdle(ball: Phaser.Physics.Matter.Image): void {
+  unregisterEnemyBallForFlagIdle(ball: Phaser.Physics.Matter.Sprite): void {
     const i = this.ballEnemies.indexOf(ball);
 
     if (i !== -1) {
@@ -1395,8 +1629,8 @@ export class GameManager extends Phaser.Scene {
     }
   }
 
-  private forEachPlayerBallForPerspective(cb: (b: Phaser.Physics.Matter.Image) => void): void {
-    const seen = new Set<Phaser.Physics.Matter.Image>();
+  private forEachPlayerBallForPerspective(cb: (b: Phaser.Physics.Matter.Sprite) => void): void {
+    const seen = new Set<Phaser.Physics.Matter.Sprite>();
 
     for (const b of this.releasedPlayerBalls) {
       if (b.active && !seen.has(b)) {
@@ -1411,7 +1645,9 @@ export class GameManager extends Phaser.Scene {
   }
 
   /** Palle giocatore in campo + nemiche (prospettiva / clamp velocità). */
-  private forEachPerspectiveBallForPerspective(cb: (b: Phaser.Physics.Matter.Image) => void): void {
+  private forEachPerspectiveBallForPerspective(
+    cb: (b: Phaser.Physics.Matter.Sprite) => void,
+  ): void {
     this.forEachPlayerBallForPerspective(cb);
 
     for (const e of this.ballEnemies) {
@@ -1423,7 +1659,7 @@ export class GameManager extends Phaser.Scene {
 
   private getTeamBallMatterImageForBody(
     body: MatterJS.BodyType,
-  ): Phaser.Physics.Matter.Image | null {
+  ): Phaser.Physics.Matter.Sprite | null {
     if (this.ballPlayer?.body === body) {
       return this.ballPlayer;
     }
@@ -1553,6 +1789,7 @@ export class GameManager extends Phaser.Scene {
     this.playerShotsUsed = 0;
     this.enemyShotsUsed = 0;
     this.colpoMatchEndEnemyLaunchAtMs = 0;
+    this.matchEndAwaitCameraIdleForResolve = false;
     this.playerWonColpoVincente = true;
     this.colpoVincenteMatchOutcome = "win";
 
@@ -1566,6 +1803,7 @@ export class GameManager extends Phaser.Scene {
 
     const s = this.gameScene.setDynamicValueBasedOnScale(0.42, 0.72);
     const sBoccino = s * gameplayCfg.boccinoScaleMul;
+    const texHalf = 110;
     const radiusPlayer = this.getPlayerBallColliderRadiusAtScale1();
     const radiusBoccino = this.getBoccinoColliderRadiusAtScale1();
 
@@ -1596,11 +1834,11 @@ export class GameManager extends Phaser.Scene {
       .setScale(sBoccino)
       .setVisible(this.ballBoccino.visible);
 
-    this.ballPlayer = this.matter.add.image(
+    this.ballPlayer = this.matter.add.sprite(
       this.ballRestWorld.x,
       this.ballRestWorld.y,
-      assetConf.image.ball_player,
-      undefined,
+      assetConf.spritesheet.animBall_Player.key,
+      0,
       {
         shape: {type: "circle", radius: radiusPlayer},
         density: gameplayCfg.ballPlayerDensity,
@@ -1611,6 +1849,8 @@ export class GameManager extends Phaser.Scene {
         isSensor: true,
       },
     );
+    this.ballPlayer.play(assetConf.keyAnim.animBallPlayerSpin);
+    this.ballPlayer.anims.pause();
     this.ballPlayer.setVisible(false);
 
     this.ballPerspectiveBaseScale = s;
@@ -1839,7 +2079,9 @@ export class GameManager extends Phaser.Scene {
     this.syncFlagToBallAndShow(this.ballBoccino);
   }
 
-  private syncFlagToBallAndShow(ball: Phaser.Physics.Matter.Image): void {
+  private syncFlagToBallAndShow(
+    ball: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image,
+  ): void {
     const x = ball.x;
     const y = ball.y;
 
@@ -1847,19 +2089,28 @@ export class GameManager extends Phaser.Scene {
 
     if (!this.flagMarker) {
       this.flagMarker = this.add
-        .image(x, y, assetConf.image.bandierino)
+        .sprite(x, y, assetConf.spritesheet.animBandiera.key)
         .setOrigin(0.5, 1)
         .setDepth(gameplayCfg.laneEntityDepthMin);
+      this.flagMarker.play(assetConf.keyAnim.animBandieraLoop);
     } else {
       this.flagMarker.setPosition(x, y);
       this.flagMarker.setVisible(true);
+
+      if (!this.flagMarker.anims.isPlaying) {
+        this.flagMarker.play(assetConf.keyAnim.animBandieraLoop);
+      }
     }
 
     this.updateFlagPerspectiveScale();
   }
 
   private hideFlagMarker(): void {
-    this.flagMarker?.setVisible(false);
+    if (this.flagMarker) {
+      this.flagMarker.setVisible(false);
+      this.flagMarker.anims.stop();
+    }
+
     this.flagFollowTarget = undefined;
   }
 
@@ -1889,7 +2140,7 @@ export class GameManager extends Phaser.Scene {
     this.nextBallSpawnTimer?.remove(false);
 
     this.attachBallTrailEmitter(this.ballPlayer, gameplayCfg.ballTrailTintPlayer);
-    this.beginCameraShotOnLaunch();
+    this.beginCameraShotOnLaunch(this.ballPlayer);
 
     if (this.enemyShotsUsed < gameplayCfg.maxEnemyShots) {
       this.nextBallSpawnTimer = this.time.delayedCall(
@@ -1909,16 +2160,17 @@ export class GameManager extends Phaser.Scene {
 
     this.matchPhase = "enemy_turn";
     this.gameScene.uiManager.updateColpoVincenteShotChipTurnHighlight("enemy");
+
     this.updateBallRestWorldPosition();
 
     const s = this.ballPerspectiveBaseScale;
     const radiusPlayer = this.getPlayerBallColliderRadiusAtScale1();
 
-    const enemy = this.matter.add.image(
+    const enemy = this.matter.add.sprite(
       this.ballRestWorld.x,
       this.ballRestWorld.y,
-      assetConf.image.ball_enemy,
-      undefined,
+      assetConf.spritesheet.animBall_Enemy.key,
+      0,
       {
         shape: {type: "circle", radius: radiusPlayer},
         density: gameplayCfg.ballEnemyDensity,
@@ -1930,6 +2182,8 @@ export class GameManager extends Phaser.Scene {
       },
     );
 
+    enemy.play(assetConf.keyAnim.animBallEnemySpin);
+    enemy.anims.pause();
     enemy.setScale(s);
     this.syncBallAtRest(enemy);
     this.registerEnemyBallForFlagIdle(enemy);
@@ -1944,7 +2198,7 @@ export class GameManager extends Phaser.Scene {
   }
 
   private runEnemyAimSimulationThenLaunch(
-    enemy: Phaser.Physics.Matter.Image,
+    enemy: Phaser.Physics.Matter.Sprite,
     plan: {dirX: number; dirY: number; pull: number; vx: number; vy: number},
   ): void {
     this.enemyBallForAimArrow = enemy;
@@ -1981,7 +2235,7 @@ export class GameManager extends Phaser.Scene {
           this.playBallLaunchSfx();
           this.matter.setVelocity(enemy, plan.vx, plan.vy);
           this.attachBallTrailEmitter(enemy, gameplayCfg.ballTrailTintEnemy);
-          this.beginCameraShotOnLaunch();
+          this.beginCameraShotOnLaunch(enemy);
         }
 
         this.onEnemyTurnLaunchComplete();
@@ -1998,14 +2252,7 @@ export class GameManager extends Phaser.Scene {
 
     if (this.playerShotsUsed >= gameplayCfg.maxPlayerShots) {
       this.colpoMatchEndEnemyLaunchAtMs = this.time.now;
-
-      this.nextBallSpawnTimer = this.time.delayedCall(
-        gameplayCfg.nextPlayerBallSpawnDelayMs,
-        () => {
-          this.nextBallSpawnTimer = undefined;
-          this.scheduleMatchResolveWhenFieldSettled();
-        },
-      );
+      this.matchEndAwaitCameraIdleForResolve = true;
 
       return;
     }
@@ -2225,11 +2472,11 @@ export class GameManager extends Phaser.Scene {
     const s = this.gameScene.setDynamicValueBasedOnScale(0.42, 0.72);
     const radiusPlayer = this.getPlayerBallColliderRadiusAtScale1();
 
-    this.ballPlayer = this.matter.add.image(
+    this.ballPlayer = this.matter.add.sprite(
       this.ballRestWorld.x,
       this.ballRestWorld.y,
-      assetConf.image.ball_player,
-      undefined,
+      assetConf.spritesheet.animBall_Player.key,
+      0,
       {
         shape: {type: "circle", radius: radiusPlayer},
         density: gameplayCfg.ballPlayerDensity,
@@ -2240,6 +2487,8 @@ export class GameManager extends Phaser.Scene {
         isSensor: false,
       },
     );
+    this.ballPlayer.play(assetConf.keyAnim.animBallPlayerSpin);
+    this.ballPlayer.anims.pause();
 
     this.ballPlayer.setVisible(true);
     this.ballPerspectiveBaseScale = s;
@@ -2450,7 +2699,7 @@ export class GameManager extends Phaser.Scene {
     }
   };
 
-  private applyLateralPerspectiveKickToBall(ball: Phaser.Physics.Matter.Image): void {
+  private applyLateralPerspectiveKickToBall(ball: Phaser.Physics.Matter.Sprite): void {
     if (
       (this.matchPhase !== "player_turn" && this.matchPhase !== "enemy_turn") ||
       !ball.body ||
@@ -2511,6 +2760,7 @@ export class GameManager extends Phaser.Scene {
     const scale = Math.max(this.laneScale, 1e-6);
 
     // Converti a design per usare i laterali inclinati come recinto.
+    const lx = (b.x - this.laneX) / scale;
     const ly = b.y / scale;
 
     const {xL, xR} = this.getLaneSideXsAtDesignY(ly);
@@ -2575,7 +2825,7 @@ export class GameManager extends Phaser.Scene {
    * Sprite e body Matter sul punto di riposo (alignBody = centro massa / bounds coerenti).
    * Senza questo, la palla può risultare spostata finché non si tocca di nuovo.
    */
-  private syncBallAtRest(ball: Phaser.Physics.Matter.Image): void {
+  private syncBallAtRest(ball: Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image): void {
     if (!ball.body) {
       return;
     }
@@ -2589,7 +2839,7 @@ export class GameManager extends Phaser.Scene {
     this.matter.setAngularVelocity(ball, 0);
   }
 
-  private syncPlayerBallAtRest(ball: Phaser.Physics.Matter.Image): void {
+  private syncPlayerBallAtRest(ball: Phaser.Physics.Matter.Sprite): void {
     this.syncBallAtRest(ball);
   }
 

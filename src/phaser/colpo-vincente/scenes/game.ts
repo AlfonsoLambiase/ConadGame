@@ -277,43 +277,52 @@ export class Game extends Phaser.Scene {
       .setScrollFactor(0);
 
     const fadeMs = colpoGameplayCfg.colpoEndOverlayTextFadeDurationMs;
+    const holdMs = colpoGameplayCfg.colpoEndOverlayHoldBeforeFadeMs;
     const yDrift = this.setDynamicValueBasedOnScale(
       this.colpoEndOverlayDriftMin,
       this.colpoEndOverlayDriftMax,
     );
 
-    this.tweens.add({
-      targets: txt,
-      y: cy + yDrift,
-      alpha: 0,
-      duration: fadeMs,
-      ease: "Sine.easeIn",
-      onComplete: () => {
-        txt.destroy();
+    const runFadeAndOutro = (): void => {
+      this.tweens.add({
+        targets: txt,
+        y: cy + yDrift,
+        alpha: 0,
+        duration: fadeMs,
+        ease: "Sine.easeIn",
+        onComplete: () => {
+          txt.destroy();
 
-        const goOutro = (delayMs: number) => {
-          this.time.delayedCall(delayMs, () => {
-            if (this.theme) this.theme.stop();
-            this.scene.start(assetConf.scene.outro, {
-              resultStatus: playerWon ? "Win" : "Failed",
+          const goOutro = (delayMs: number) => {
+            this.time.delayedCall(delayMs, () => {
+              if (this.theme) this.theme.stop();
+              this.scene.start(assetConf.scene.outro, {
+                resultStatus: playerWon ? "Win" : "Failed",
+              });
             });
-          });
-        };
+          };
 
-        if (outcome === "win") {
-          this.time.delayedCall(this.colpoEndConfettiDelayAfterTitleMs, () => {
-            this.startAnimConfetti();
-            this.audioManager.playAudio(assetConf.audio.endWin);
-            goOutro(3000);
-          });
-        } else if (outcome === "draw") {
-          this.audioManager.playAudio(assetConf.audio.endFailed);
-          goOutro(2000);
-        } else {
-          this.audioManager.playAudio(assetConf.audio.endFailed);
-          goOutro(1000);
-        }
-      },
-    });
+          if (outcome === "win") {
+            this.time.delayedCall(this.colpoEndConfettiDelayAfterTitleMs, () => {
+              this.startAnimConfetti();
+              this.audioManager.playAudio(assetConf.audio.endWin);
+              goOutro(3000);
+            });
+          } else if (outcome === "draw") {
+            this.audioManager.playAudio(assetConf.audio.endFailed);
+            goOutro(2000);
+          } else {
+            this.audioManager.playAudio(assetConf.audio.endFailed);
+            goOutro(1000);
+          }
+        },
+      });
+    };
+
+    if (holdMs > 0) {
+      this.time.delayedCall(holdMs, runFadeAndOutro);
+    } else {
+      runFadeAndOutro();
+    }
   }
 }

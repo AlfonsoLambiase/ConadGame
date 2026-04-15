@@ -39,14 +39,14 @@ export class Game extends Phaser.Scene {
   create() {
     this.setGlobalScale();
 
-    // Inizializza il GameManager
-    this.initializeGameManager();
-
     this.starsEffectManager = new StarsEffectManager(this);
 
+    // UI prima del GameManager: il puzzle usa il bordo inferiore dello score per la Y.
     this.uiManager = new UIManager(this);
     this.uiManager.setGameScene(this);
     this.uiManager.createUI();
+
+    this.initializeGameManager();
 
     this.audioManager = new AudioManager(this); //* è una semplice classe helper. Si inizializza in questo modo.
     this.audioManager.loadAudios();
@@ -147,49 +147,49 @@ export class Game extends Phaser.Scene {
     return minValue + t * (maxValue - minValue);
   }
 
-  startAnimConfetti() {
-    const config = this.sys.game.config as {width: number; height: number};
+  // startAnimConfetti() {
+  //   const config = this.sys.game.config as {width: number; height: number};
 
-    // Create spriteLeft
-    const spriteLeft = this.add
-      .sprite(0, config.height / 2, assetConf.spritesheet.confetti_left.key)
-      .setOrigin(0, 0.5)
-      .setDepth(15)
-      .setScale(5)
-      .setScrollFactor(0);
+  //   // Create spriteLeft
+  //   const spriteLeft = this.add
+  //     .sprite(0, config.height / 2, assetConf.spritesheet.confetti_left.key)
+  //     .setOrigin(0, 0.5)
+  //     .setDepth(15)
+  //     .setScale(5)
+  //     .setScrollFactor(0);
 
-    // Create animationLeft
-    this.anims.create({
-      key: "animConfettiLeft",
-      frames: this.anims.generateFrameNumbers(assetConf.spritesheet.confetti_left.key, {
-        start: 0,
-        end: 54,
-      }),
-      frameRate: 20,
-    });
+  //   // Create animationLeft
+  //   this.anims.create({
+  //     key: "animConfettiLeft",
+  //     frames: this.anims.generateFrameNumbers(assetConf.spritesheet.confetti_left.key, {
+  //       start: 0,
+  //       end: 54,
+  //     }),
+  //     frameRate: 20,
+  //   });
 
-    spriteLeft.play("animConfettiLeft");
+  //   spriteLeft.play("animConfettiLeft");
 
-    // Create spriteRight
-    const spriteRight = this.add
-      .sprite(config.width, config.height / 2, assetConf.spritesheet.confetti_right.key)
-      .setOrigin(1, 0.5)
-      .setDepth(15)
-      .setScale(5)
-      .setScrollFactor(0);
+  //   // Create spriteRight
+  //   const spriteRight = this.add
+  //     .sprite(config.width, config.height / 2, assetConf.spritesheet.confetti_right.key)
+  //     .setOrigin(1, 0.5)
+  //     .setDepth(15)
+  //     .setScale(5)
+  //     .setScrollFactor(0);
 
-    // Create animationRight
-    this.anims.create({
-      key: "animConfettiRight",
-      frames: this.anims.generateFrameNumbers(assetConf.spritesheet.confetti_right.key, {
-        start: 0,
-        end: 54,
-      }),
-      frameRate: 20,
-    });
+  //   // Create animationRight
+  //   this.anims.create({
+  //     key: "animConfettiRight",
+  //     frames: this.anims.generateFrameNumbers(assetConf.spritesheet.confetti_right.key, {
+  //       start: 0,
+  //       end: 54,
+  //     }),
+  //     frameRate: 20,
+  //   });
 
-    spriteRight.play("animConfettiRight");
-  }
+  //   spriteRight.play("animConfettiRight");
+  // }
 
   gameOver(): void {
     if (!this.isGameOver) {
@@ -201,7 +201,7 @@ export class Game extends Phaser.Scene {
 
       if (this.uiManager.score >= this.uiManager.maxScore) {
         console.log("HAI VINTO LA PARTITA COMPLIMENTI!!!");
-        this.startAnimConfetti();
+        this.gameManager.startAnimConfetti();
         delay = 3000;
         this.audioManager.playAudio(assetConf.audio.endWin);
       } else {

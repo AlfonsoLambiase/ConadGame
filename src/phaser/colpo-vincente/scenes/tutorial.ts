@@ -1,4 +1,3 @@
-
 import {ColpoVincenteAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = ColpoVincenteAssetConf; //* Generalizzazione

@@ -40,14 +40,13 @@ export const ColpoVincenteAssetConf = {
     // for specific game
     bg: "bg",
     bg_Top: "bg_Top",
-    ball_player: "ball_player",
-    ball_enemy: "ball_enemy",
     ball_boccino: "ball_boccino",
     ball_boccino_shadow: "ball_boccino_shadow",
-    bandierino: "bandierino",
     ball_shadow: "ball_shadow",
-    /** Sopra la palla (player o nemica) più vicina al boccino. */
-    ball_indicator: "ball_indicator",
+    /** Sopra la palla player più vicina al boccino. */
+    ball_indicator_Player: "ball_indicator_Player",
+    /** Sopra la palla enemy più vicina al boccino. */
+    ball_indicator_Enemy: "ball_indicator_Enemy",
     arrow: "arrow",
     arrow_bottom: "arrow_bottom",
     arrow_top: "arrow_top",
@@ -129,6 +128,28 @@ export const ColpoVincenteAssetConf = {
       frameHeight: 104,
       key: "animBrokenHeart",
     },
+
+    // for ball_player / ball_enemy rotation animation
+    animBall_Player: {
+      // 61
+      frameWidth: 220,
+      frameHeight: 220,
+      key: "animBall_Player",
+    },
+    animBall_Enemy: {
+      // 61
+      frameWidth: 220,
+      frameHeight: 220,
+      key: "animBall_Enemy",
+    },
+
+    // for flag animation (replaces bandierino)
+    animBandiera: {
+      // 38
+      frameWidth: 263,
+      frameHeight: 263,
+      key: "animBandiera",
+    },
   },
   keyAnim: {
     // for starsEffect
@@ -143,6 +164,11 @@ export const ColpoVincenteAssetConf = {
     animEndTutorialText01: "animEndTutorialText01",
     animEndTutorialText02: "animEndTutorialText02",
     animEndTutorialText03: "animEndTutorialText03",
+    // for ball rotation
+    animBallPlayerSpin: "animBallPlayerSpin",
+    animBallEnemySpin: "animBallEnemySpin",
+    // for flag
+    animBandieraLoop: "animBandieraLoop",
   },
   font: {
     "PaytoneOne-Regular": "PaytoneOne-Regular",
