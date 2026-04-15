@@ -305,10 +305,7 @@ export class GameManager extends Phaser.Scene {
 
   // ─── Round flow: auto countdown+oscillazione → reveal → vittoria → next ───
 
-  private startRound(): void {
-    this.isRoundPlaying = false;
-    this.setChoiceBarEnabled(true);
-
+  private startPlayerEnemyHandBounce(): void {
     const bounce = this.gameScene.setDynamicValueBasedOnScale(30, 60);
     const bounceDuration = 350;
 
@@ -329,6 +326,11 @@ export class GameManager extends Phaser.Scene {
       repeat: -1,
       ease: "Sine.easeInOut",
     });
+  }
+
+  private startRound(): void {
+    this.isRoundPlaying = false;
+    this.setChoiceBarEnabled(true);
 
     this.showCountdown(() => {
       this.isRoundPlaying = true;
@@ -351,25 +353,54 @@ export class GameManager extends Phaser.Scene {
   private showCountdown(onComplete: () => void): void {
     const popMs = 550;
     const fadeMs = 550;
+    const introMs = 2000;
 
     const cam = this.gameScene.cameras.main;
     const centerWorld = cam.getWorldPoint(cam.centerX, cam.centerY);
     const cx = centerWorld.x;
     const cy = centerWorld.y;
     const fontSize = this.gameScene.setDynamicValueBasedOnScale(80, 160);
+    const introFontSize = Math.round(fontSize * 0.5);
+    const introStroke = Math.max(4, Math.round(8 * (introFontSize / fontSize)));
+
+    const textStyleBase: Phaser.Types.GameObjects.Text.TextStyle = {
+      fontFamily: "Paytone One",
+      fontSize: `${fontSize}px`,
+      color: "#ffffff",
+      stroke: "#000000",
+      strokeThickness: 8,
+      align: "center",
+    };
+
+    const introStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+      ...textStyleBase,
+      fontSize: `${introFontSize}px`,
+      strokeThickness: introStroke,
+    };
+
+    const introLabel = "Scegli la tua mossa";
+    const arrowGap = this.gameScene.setDynamicValueBasedOnScale(6, 14);
 
     const text = this.add
-      .text(cx, cy, "3", {
-        fontFamily: "Paytone One",
-        fontSize: `${fontSize}px`,
-        color: "#ffffff",
-        stroke: "#000000",
-        strokeThickness: 8,
-      })
+      .text(cx, cy, introLabel, introStyle)
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(200)
-      .setScale(0);
+      .setScale(1)
+      .setAlpha(1);
+
+    const arrow = this.add
+      .image(0, cy, assetConf.image.arrow)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(200);
+
+    const arrowTargetH = introFontSize * 1.15;
+    arrow.setScale(arrowTargetH / arrow.height);
+    const introBlockW = text.width + arrowGap + arrow.displayWidth;
+    const introTextX = cx - introBlockW / 2 + text.width / 2;
+    text.setX(introTextX);
+    arrow.setX(introTextX + text.width / 2 + arrowGap);
 
     const numbers = ["3", "2", "1"];
     let index = 0;
@@ -382,6 +413,7 @@ export class GameManager extends Phaser.Scene {
         return;
       }
       text.setText(numbers[index]);
+      text.setStyle(textStyleBase);
       text.setScale(0).setAlpha(1);
 
       this.tweens.add({
@@ -405,7 +437,12 @@ export class GameManager extends Phaser.Scene {
       });
     };
 
-    showNext();
+    this.time.delayedCall(introMs, () => {
+      arrow.destroy();
+      text.setX(cx);
+      this.startPlayerEnemyHandBounce();
+      showNext();
+    });
   }
 
   private revealChoices(): void {

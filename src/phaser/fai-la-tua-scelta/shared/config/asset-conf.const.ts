@@ -48,6 +48,7 @@ export const FaiLaTuaSceltaAssetConf = {
     btnConfirm: "btnConfirm",
     btnCancel: "btnCancel",
     popupExitGame: "popupExitGame",
+    arrow: "arrow",
 
     // for tutorial
     tutorialTastoAvanti: "tutorialTastoAvanti",
