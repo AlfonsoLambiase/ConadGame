@@ -25,7 +25,7 @@ type FlagIdleTrackedBall = {
   maxSpeed: number;
 };
 
-export type ColpoVincenteMatchOutcome = "win" | "draw" | "loss";
+export type ColpoVincenteMatchOutcome = "win" | "loss";
 
 type AxisAlignedWallConfig = {
   x: number;
@@ -61,7 +61,7 @@ export class GameManager extends Phaser.Scene {
   public isGameOver = false;
   /** Esito Colpo Vincente: vittoria se la palla giocatore più vicina batte quella nemica (dopo 3+3 tiri). */
   public playerWonColpoVincente = true;
-  /** Esito finale esplicito (vittoria / pareggio / sconfitta). */
+  /** Esito finale esplicito (vittoria / sconfitta; ex pareggio → vittoria player). */
   public colpoVincenteMatchOutcome: ColpoVincenteMatchOutcome = "win";
 
   gameScene!: Game;
@@ -152,9 +152,9 @@ export class GameManager extends Phaser.Scene {
    * Corrimano sx in spazio design (1080×1920): basso e più esterno → alto e verso il centro (prospettiva).
    */
   private readonly wallLeftLine: SegmentLineWallConfig = {
-    x1: -800,
-    y1: 1200,
-    x2: -50,
+    x1: -600,
+    y1: 1450,
+    x2: -170,
     y2: 350,
     thickness: 50,
     color: 0xe74c3c,
@@ -162,9 +162,9 @@ export class GameManager extends Phaser.Scene {
   };
 
   private readonly wallRightLine: SegmentLineWallConfig = {
-    x1: 800,
-    y1: 1200,
-    x2: 50,
+    x1: 600,
+    y1: 1450,
+    x2: 170,
     y2: 350,
     thickness: 50,
     color: 0x3498db,
@@ -175,7 +175,7 @@ export class GameManager extends Phaser.Scene {
   private readonly wallBackConfig: AxisAlignedWallConfig = {
     x: 0,
     y: 460,
-    width: 400,
+    width: 500,
     height: 40,
     color: 0x2ecc71,
     alpha: 0,
@@ -388,7 +388,7 @@ export class GameManager extends Phaser.Scene {
     // - `YFar`: dove inizia la “lontananza”
     // - `MinMul`: quanto possono diventare piccole le palle in alto
     this.dynPerspectiveYFarDesign = this.gameScene.setDynamicValueBasedOnScale(130, 300);
-    this.dynPerspectiveMinMul = this.gameScene.setDynamicValueBasedOnScale(0.28, 0.44);
+    this.dynPerspectiveMinMul = this.gameScene.setDynamicValueBasedOnScale(0.26, 0.42); // 0.28, 0.44
 
     // Bandierino: scala base + minimo in profondità (device-aware).
     this.dynFlagBaseScale = this.gameScene.setDynamicValueBasedOnScale(
@@ -486,7 +486,7 @@ export class GameManager extends Phaser.Scene {
         key: assetConf.keyAnim.animBandieraLoop,
         frames: this.anims.generateFrameNumbers(assetConf.spritesheet.animBandiera.key, {
           start: 0,
-          end: 37,
+          end: 36,
         }),
         frameRate: 25,
         repeat: -1,
@@ -566,17 +566,50 @@ export class GameManager extends Phaser.Scene {
   }
 
   /**
-   * Distanza euclidea tra due punti corretta per la prospettiva.
-   * La componente Y di ciascun punto viene divisa per il suo `perspectiveMul`,
-   * così 1 px in alto (oggetti rimpiccioliti) "pesa" di più nel calcolo.
+   * Larghezza reale della corsia (world px) a una data Y mondo,
+   * interpolata dai muri laterali convergenti (design px → world px).
+   */
+  private getCourtHalfWidthWorldAtY(worldY: number): number {
+    const scale = Math.max(this.laneScale, 1e-6);
+    const designY = (worldY - this.laneY) / scale;
+
+    const wl = this.wallLeftLine;
+    const wr = this.wallRightLine;
+    const ySpan = wl.y2 - wl.y1;
+    const t = ySpan !== 0 ? Phaser.Math.Clamp((designY - wl.y1) / ySpan, 0, 1) : 0;
+    const leftXDesign = wl.x1 + t * (wl.x2 - wl.x1);
+    const rightXDesign = wr.x1 + t * (wr.x2 - wr.x1);
+
+    return Math.max((rightXDesign - leftXDesign) * 0.5, 1) * scale;
+  }
+
+  private static readonly COURT_LENGTH_M = 27.5;
+  private static readonly COURT_HALF_WIDTH_M = 2;
+
+  /**
+   * Distanza reale (metri) tra due punti del campo, proiettati su un campo di bocce
+   * 27.5 m × 4 m. Converte:
+   * - Y schermo → profondità reale (usa `1/mul` ∝ distanza reale).
+   * - X schermo → posizione laterale reale (usa la larghezza del campo a quella Y).
    */
   private perspectiveCorrectedDistance(x1: number, y1: number, x2: number, y2: number): number {
+    const {COURT_LENGTH_M, COURT_HALF_WIDTH_M} = GameManager;
+    const minMul = this.dynPerspectiveMinMul;
+    const cx = this.laneX;
+
     const mul1 = this.getPerspectiveMulAtY(y1);
     const mul2 = this.getPerspectiveMulAtY(y2);
-    const corrY1 = y1 / mul1;
-    const corrY2 = y2 / mul2;
 
-    return Math.hypot(x2 - x1, corrY2 - corrY1);
+    const invRange = 1 / minMul - 1;
+    const depthM1 = invRange > 0 ? (COURT_LENGTH_M * (1 / mul1 - 1)) / invRange : 0;
+    const depthM2 = invRange > 0 ? (COURT_LENGTH_M * (1 / mul2 - 1)) / invRange : 0;
+
+    const hw1 = this.getCourtHalfWidthWorldAtY(y1);
+    const hw2 = this.getCourtHalfWidthWorldAtY(y2);
+    const latM1 = ((x1 - cx) / hw1) * COURT_HALF_WIDTH_M;
+    const latM2 = ((x2 - cx) / hw2) * COURT_HALF_WIDTH_M;
+
+    return Math.hypot(latM2 - latM1, depthM2 - depthM1);
   }
 
   /** Regola la velocità di riproduzione dell'anim di spin in base alla velocità della palla. */
@@ -1318,10 +1351,10 @@ export class GameManager extends Phaser.Scene {
   }
 
   /**
-   * Distanza minima (px, float) dal boccino tra le palle passate; solo `active && body && visible`.
+   * Distanza minima (metri reali) dal boccino tra le palle passate; solo `active && body && visible`.
    * Allineato a HUD / indicator / esito partita.
    */
-  private getMinDistancePxToBoccinoAmong(
+  private getMinDistanceMToBoccino(
     balls: readonly (Phaser.Physics.Matter.Sprite | Phaser.Physics.Matter.Image)[],
   ): number {
     if (!this.ballBoccino?.active || !this.ballBoccino.body) {
@@ -1356,9 +1389,6 @@ export class GameManager extends Phaser.Scene {
       return;
     }
 
-    const h = Math.max(this.scale.height, 1);
-    const pxToMeters = gameplayCfg.distanceHudMetersPerScreenHeight / h;
-
     let playerDistM: number | null = null;
     let enemyDistM: number | null = null;
 
@@ -1366,27 +1396,12 @@ export class GameManager extends Phaser.Scene {
     if (this.playerShotsUsed === 0) {
       this.gameScene.uiManager.setNearestPlayerBallDistanceCm(0);
     } else {
-      const candidates = this.collectVisiblePlayerBallsUnique();
+      const minM = this.getMinDistanceMToBoccino(this.collectVisiblePlayerBallsUnique());
 
-      if (candidates.length === 0) {
+      if (!Number.isFinite(minM)) {
         this.gameScene.uiManager.setNearestPlayerBallDistanceCm(null);
       } else {
-        let minPx = Infinity;
-
-        for (const b of candidates) {
-          const d = this.perspectiveCorrectedDistance(
-            this.ballBoccino.x,
-            this.ballBoccino.y,
-            b.x,
-            b.y,
-          );
-
-          if (d < minPx) {
-            minPx = d;
-          }
-        }
-
-        playerDistM = minPx * pxToMeters;
+        playerDistM = minM;
         this.gameScene.uiManager.setNearestPlayerBallDistanceCm(playerDistM);
       }
     }
@@ -1394,27 +1409,12 @@ export class GameManager extends Phaser.Scene {
     if (this.enemyShotsUsed === 0) {
       this.gameScene.uiManager.setEnemyHudNumericText(0);
     } else {
-      const enemies = this.getEnemyBallsForDistanceAndScoring();
+      const minM = this.getMinDistanceMToBoccino(this.getEnemyBallsForDistanceAndScoring());
 
-      if (enemies.length === 0) {
+      if (!Number.isFinite(minM)) {
         this.gameScene.uiManager.setEnemyHudNumericText(null);
       } else {
-        let minPxEnemy = Infinity;
-
-        for (const b of enemies) {
-          const d = this.perspectiveCorrectedDistance(
-            this.ballBoccino.x,
-            this.ballBoccino.y,
-            b.x,
-            b.y,
-          );
-
-          if (d < minPxEnemy) {
-            minPxEnemy = d;
-          }
-        }
-
-        enemyDistM = minPxEnemy * pxToMeters;
+        enemyDistM = minM;
         this.gameScene.uiManager.setEnemyHudNumericText(enemyDistM);
       }
     }
@@ -1583,7 +1583,7 @@ export class GameManager extends Phaser.Scene {
       return;
     }
 
-    if (this.enemyShotsUsed < 1) {
+    if (this.playerShotsUsed < 1) {
       this.closestBallIndicator?.setVisible(false);
 
       return;
@@ -2500,9 +2500,9 @@ export class GameManager extends Phaser.Scene {
       return;
     }
 
-    const dP = this.getMinDistancePxToBoccinoAmong(this.collectVisiblePlayerBallsUnique());
-    const dE = this.getMinDistancePxToBoccinoAmong(this.getEnemyBallsForDistanceAndScoring());
-    const eps = gameplayCfg.matchTieDistanceEpsilonPx;
+    const dP = this.getMinDistanceMToBoccino(this.collectVisiblePlayerBallsUnique());
+    const dE = this.getMinDistanceMToBoccino(this.getEnemyBallsForDistanceAndScoring());
+    const eps = gameplayCfg.matchTieDistanceEpsilonM;
     const pOk = Number.isFinite(dP);
     const eOk = Number.isFinite(dE);
 
@@ -2510,29 +2510,28 @@ export class GameManager extends Phaser.Scene {
     let logDetail: string;
 
     if (!pOk && !eOk) {
-      outcome = "draw";
-      logDetail = "nessuna distanza valida (player / nemico).";
+      outcome = "win";
+      logDetail =
+        "nessuna distanza valida (player / nemico) — ex pareggio, assegnata vittoria al player.";
     } else if (!pOk) {
       outcome = "loss";
-      logDetail = `nessuna palla giocatore valida; d nemico ≈ ${dE.toFixed(1)} px.`;
+      logDetail = `nessuna palla giocatore valida; d nemico ≈ ${dE.toFixed(3)} m.`;
     } else if (!eOk) {
       outcome = "win";
-      logDetail = `nessuna palla nemica valida; d player ≈ ${dP.toFixed(1)} px.`;
+      logDetail = `nessuna palla nemica valida; d player ≈ ${dP.toFixed(3)} m.`;
     } else if (Math.abs(dP - dE) < eps) {
-      outcome = "draw";
-      logDetail = `entro ε=${eps}px: player ${dP.toFixed(1)} px, nemico ${dE.toFixed(1)} px.`;
+      outcome = "win";
+      logDetail = `entro ε=${eps}m (ex pareggio): player ${dP.toFixed(3)} m, nemico ${dE.toFixed(3)} m → vittoria player.`;
     } else if (dP < dE) {
       outcome = "win";
-      logDetail = `player più vicino: ${dP.toFixed(1)} px vs nemico ${dE.toFixed(1)} px.`;
+      logDetail = `player più vicino: ${dP.toFixed(3)} m vs nemico ${dE.toFixed(3)} m.`;
     } else {
       outcome = "loss";
-      logDetail = `nemico più vicino: ${dE.toFixed(1)} px vs player ${dP.toFixed(1)} px.`;
+      logDetail = `nemico più vicino: ${dE.toFixed(3)} m vs player ${dP.toFixed(3)} m.`;
     }
 
     if (outcome === "win") {
       console.log(`[Colpo Vincente] VITTORIA — ${logDetail}`);
-    } else if (outcome === "draw") {
-      console.log(`[Colpo Vincente] PAREGGIO — ${logDetail}`);
     } else {
       console.log(`[Colpo Vincente] SCONFITTA — ${logDetail}`);
     }
@@ -2544,8 +2543,6 @@ export class GameManager extends Phaser.Scene {
 
     if (outcome === "win") {
       ui.score = ui.maxScore;
-    } else if (outcome === "draw") {
-      ui.score = Math.round(ui.maxScore * 0.5);
     } else {
       ui.score = 0;
     }

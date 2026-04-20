@@ -25,12 +25,19 @@ export class AudioManager {
   }
 
   playBackgroundMusic(): void {
-    const theme = this.scene.sound.add(assetConf.audio.music);
+    const theme = this.audios[assetConf.audio.music];
+    if (!theme) return;
+    if (theme.isPlaying) return;
 
     theme.play({
       loop: true,
       volume: 0.7,
     });
+  }
+
+  stopBackgroundMusic(): void {
+    const theme = this.audios[assetConf.audio.music];
+    if (theme?.isPlaying) theme.stop();
   }
 }
 

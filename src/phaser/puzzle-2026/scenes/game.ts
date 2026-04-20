@@ -41,7 +41,7 @@ export class Game extends Phaser.Scene {
 
     this.starsEffectManager = new StarsEffectManager(this);
 
-    // UI prima del GameManager: il puzzle usa il bordo inferiore dello score per la Y.
+    // UI prima del GameManager: il puzzle si centra tra il fondo banner logo e il tasto help.
     this.uiManager = new UIManager(this);
     this.uiManager.setGameScene(this);
     this.uiManager.createUI();

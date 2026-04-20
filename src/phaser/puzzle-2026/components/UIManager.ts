@@ -19,6 +19,9 @@ export class UIManager {
   ofssetX: number = 0;
   scoreContainer!: Phaser.GameObjects.Container;
 
+  /** Banner sponsor (logo + backgroundLogo); null se `sponsorLogo === "empty"`. */
+  private logoBannerContainer: Phaser.GameObjects.Container | null = null;
+
   helpUsed: number = 0;
   differenceTryLimit: number = 1; // limite massimo tasto aiuto
   public iconHelp!: Phaser.GameObjects.Image;
@@ -57,9 +60,23 @@ export class UIManager {
     this.scene.registry.set(assetConf.registry.score, 0);
   }
 
-  /** Bordo inferiore dell'HUD punteggio (coordinate mondo scena Game). */
+  /** Bordo inferiore dell'HUD punteggio (coordinate mondo); lo score può essere nascosto ma i bounds restano validi. */
   getScoreHudBottomY(): number {
     return this.scoreContainer.getBounds().bottom;
+  }
+
+  /**
+   * Limite superiore della fascia dove centrare il puzzle: sotto il banner logo.
+   * Se non c’è logo sponsor, usa un offset sotto la safe area.
+   */
+  getLogoAreaBottomY(): number {
+    if (this.logoBannerContainer) {
+      return this.logoBannerContainer.getBounds().bottom;
+    }
+
+    const safeTop = this.scene.registry.get("safeTop") || 0;
+
+    return safeTop + this.gameScene.setDynamicValueBasedOnScale(96, 168);
   }
 
   /** Bordo superiore del tasto help: limite inferiore della fascia per centrare il puzzle. */
@@ -139,6 +156,8 @@ export class UIManager {
 
       // IMPORTANTE: regola origine con setOrigin-like comportamento
       logoContainer.setPosition(this.scene.scale.width / 2, safeTop); //! notch Area
+
+      this.logoBannerContainer = logoContainer;
     }
   }
 
@@ -185,6 +204,9 @@ export class UIManager {
 
     // 7. Scala del container
     this.scoreContainer.setScale(this.gameScene.setDynamicValueBasedOnScale(0.4, 0.8)); //* Modificare valori scala (3-3)
+
+    // Score + bg nascosti: logica (testo, registry, tween) resta attiva.
+    this.scoreContainer.setVisible(false);
   }
 
   #createIconHelp() {
@@ -192,8 +214,8 @@ export class UIManager {
     const iconHelp = this.scene.add.image(
       this.gameScene.setDynamicValueBasedOnScale(20, 50) + this.ofssetX,
       this.gameScene.setDynamicValueBasedOnScale(
-        this.scene.scale.height - 75,
-        this.scene.scale.height - 170,
+        this.scene.scale.height - 125,
+        this.scene.scale.height - 270,
       ) + this.ofssetY,
       assetConf.image.iconHelp,
     );

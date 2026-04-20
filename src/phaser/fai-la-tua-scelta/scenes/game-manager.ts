@@ -11,6 +11,13 @@ type RpsChoice = "carta" | "forbice" | "sasso";
 
 const RPS_CHOICES: RpsChoice[] = ["sasso", "carta", "forbice"];
 
+/** `wins[a] === b` ⇒ a batte b (sasso/forbice/carta) */
+const RPS_WINS: Record<RpsChoice, RpsChoice> = {
+  carta: "sasso",
+  sasso: "forbice",
+  forbice: "carta",
+};
+
 const RPS_ANIM_FRAME_COUNT = 24;
 const RPS_ANIM_LAST_FRAME = RPS_ANIM_FRAME_COUNT - 1;
 /** Durata totale animazione ~1s; regola qui la velocità */
@@ -112,6 +119,7 @@ export class GameManager extends Phaser.Scene {
 
     /** Stessa distanza in |Y| dal centro camera per nemico (su) e player (giù), più lontani dal centro */
     const distFromCenterY = this.gameScene.setDynamicValueBasedOnScale(140, 720);
+
     this.enemyAboveCenterY = distFromCenterY;
     this.playerBelowCenterY = distFromCenterY;
     this.slamDistance = this.gameScene.setDynamicValueBasedOnScale(110, 660);
@@ -130,6 +138,7 @@ export class GameManager extends Phaser.Scene {
     const entryOffscreenPad = this.gameScene.setDynamicValueBasedOnScale(160, 320);
 
     const handTopTargetY = centerWorld.y - this.enemyAboveCenterY;
+
     this.enemyImg = this.gameScene.add
       .image(cx, 0, img.sasso)
       .setOrigin(0.5, 0.5)
@@ -149,6 +158,7 @@ export class GameManager extends Phaser.Scene {
     this.syncEnemyAsseDepth();
 
     const handBottomTargetY = centerWorld.y + this.playerBelowCenterY;
+
     this.playerImg = this.gameScene.add
       .image(cx, 0, img.sasso)
       .setOrigin(0.5, 0.5)
@@ -378,8 +388,7 @@ export class GameManager extends Phaser.Scene {
       strokeThickness: introStroke,
     };
 
-    const introLabel = "Scegli la tua mossa";
-    const arrowGap = this.gameScene.setDynamicValueBasedOnScale(6, 14);
+    const introLabel = "Fai la tua mossa!";
 
     const text = this.add
       .text(cx, cy, introLabel, introStyle)
@@ -388,19 +397,6 @@ export class GameManager extends Phaser.Scene {
       .setDepth(200)
       .setScale(1)
       .setAlpha(1);
-
-    const arrow = this.add
-      .image(0, cy, assetConf.image.arrow)
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(200);
-
-    const arrowTargetH = introFontSize * 1.15;
-    arrow.setScale(arrowTargetH / arrow.height);
-    const introBlockW = text.width + arrowGap + arrow.displayWidth;
-    const introTextX = cx - introBlockW / 2 + text.width / 2;
-    text.setX(introTextX);
-    arrow.setX(introTextX + text.width / 2 + arrowGap);
 
     const numbers = ["3", "2", "1"];
     let index = 0;
@@ -438,8 +434,6 @@ export class GameManager extends Phaser.Scene {
     };
 
     this.time.delayedCall(introMs, () => {
-      arrow.destroy();
-      text.setX(cx);
       this.startPlayerEnemyHandBounce();
       showNext();
     });
@@ -447,7 +441,7 @@ export class GameManager extends Phaser.Scene {
 
   private revealChoices(): void {
     const playerChoice = this.selectedRpsChoice ?? "sasso";
-    const enemyChoice = RPS_CHOICES[Phaser.Math.Between(0, 2)];
+    const enemyChoice = this.pickBiasedEnemyChoice(playerChoice);
 
     this.playerImg.setAlpha(1);
     this.playerAsseImg.setAlpha(1);
@@ -564,15 +558,23 @@ export class GameManager extends Phaser.Scene {
     });
   }
 
+  /**
+   * Pareggio 20%, vittoria player 50%, vittoria nemico 30% (per round, indipendente dalla scelta).
+   */
+  private pickBiasedEnemyChoice(player: RpsChoice): RpsChoice {
+    const roll = Phaser.Math.Between(0, 99);
+
+    if (roll < 20) return player;
+
+    if (roll < 65) return RPS_WINS[player];
+
+    return RPS_CHOICES.find((c) => RPS_WINS[c] === player) ?? player;
+  }
+
   private resolveRound(player: RpsChoice, enemy: RpsChoice): "player" | "enemy" | "draw" {
     if (player === enemy) return "draw";
-    const wins: Record<RpsChoice, RpsChoice> = {
-      carta: "sasso",
-      sasso: "forbice",
-      forbice: "carta",
-    };
 
-    return wins[player] === enemy ? "player" : "enemy";
+    return RPS_WINS[player] === enemy ? "player" : "enemy";
   }
 
   private setChoiceBarEnabled(enabled: boolean): void {

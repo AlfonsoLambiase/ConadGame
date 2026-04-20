@@ -30,16 +30,7 @@ export class Game extends Phaser.Scene {
 
   starsEffectManager!: StarsEffectManager;
 
-  /** Min/max px font overlay fine partita (setDynamicValueBasedOnScale): pareggio / sconfitta. */
-  private colpoEndOverlayFontMin!: number;
-  private colpoEndOverlayFontMax!: number;
-  /** Min/max px font per "Hai vinto!" (più grande). */
-  private colpoEndOverlayWinFontMin!: number;
-  private colpoEndOverlayWinFontMax!: number;
-  /** Min/max px drift verticale durante la dissolvenza del titolo. */
-  private colpoEndOverlayDriftMin!: number;
-  private colpoEndOverlayDriftMax!: number;
-  /** ms dopo la fine del tween testo prima di confetti + audio vittoria. */
+  /** ms dopo overlay risultato prima di confetti + audio vittoria. */
   private colpoEndConfettiDelayAfterTitleMs!: number;
 
   constructor() {
@@ -49,12 +40,6 @@ export class Game extends Phaser.Scene {
   init() {
     console.log("Start Scene Game");
 
-    this.colpoEndOverlayFontMin = 56;
-    this.colpoEndOverlayFontMax = 108;
-    this.colpoEndOverlayWinFontMin = 82;
-    this.colpoEndOverlayWinFontMax = 158;
-    this.colpoEndOverlayDriftMin = 100;
-    this.colpoEndOverlayDriftMax = 188;
     this.colpoEndConfettiDelayAfterTitleMs = 1000;
   }
 
@@ -243,86 +228,91 @@ export class Game extends Phaser.Scene {
     }
   }
 
-  /** Testo centrale → dissolvenza verso il basso → confetti (solo vittoria) → outro. */
+  private ensureColpoEndResultSheetAnims(): void {
+    const winKey = assetConf.spritesheet.animWin.key;
+    const loseKey = assetConf.spritesheet.animLose.key;
+    const lastFrame = 19;
+    const animWinKey = assetConf.keyAnim.animColpoEndWin;
+    const animLoseKey = assetConf.keyAnim.animColpoEndLose;
+
+    if (this.anims.exists(animWinKey)) {
+      this.anims.remove(animWinKey);
+    }
+    if (this.anims.exists(animLoseKey)) {
+      this.anims.remove(animLoseKey);
+    }
+
+    this.anims.create({
+      key: animWinKey,
+      frames: this.anims.generateFrameNumbers(winKey, {start: 0, end: lastFrame}),
+      frameRate: 18,
+      repeat: 0,
+    });
+    this.anims.create({
+      key: animLoseKey,
+      frames: this.anims.generateFrameNumbers(loseKey, {start: 0, end: lastFrame}),
+      frameRate: 18,
+      repeat: 0,
+    });
+  }
+
+  /** Overlay fine partita: spritesheet win/lose centrato, un solo ciclo 0–19, poi destroy. */
   private playColpoMatchEndResultOverlay(
     outcome: ColpoVincenteMatchOutcome,
     playerWon: boolean,
   ): void {
     const cx = this.scale.width * 0.5;
-    const cy = this.scale.height * 0.42;
-    const label = outcome === "win" ? "Hai vinto!" : outcome === "draw" ? "Parità!" : "Hai Perso!";
-    const fontPx = Math.round(
-      outcome === "win"
-        ? this.setDynamicValueBasedOnScale(
-            this.colpoEndOverlayWinFontMin,
-            this.colpoEndOverlayWinFontMax,
-          )
-        : this.setDynamicValueBasedOnScale(
-            this.colpoEndOverlayFontMin,
-            this.colpoEndOverlayFontMax,
-          ),
-    );
+    const cy = this.scale.height * 0.5;
 
-    const txt = this.add
-      .text(cx, cy, label, {
-        fontFamily: "Paytone One",
-        fontSize: `${fontPx}px`,
-        color: "#ffffff",
-        stroke: "#000000",
-        strokeThickness: Math.max(6, Math.round(fontPx * 0.09)),
-        align: "center",
-      })
-      .setOrigin(0.5)
-      .setDepth(96)
-      .setScrollFactor(0);
-
-    const fadeMs = colpoGameplayCfg.colpoEndOverlayTextFadeDurationMs;
-    const holdMs = colpoGameplayCfg.colpoEndOverlayHoldBeforeFadeMs;
-    const yDrift = this.setDynamicValueBasedOnScale(
-      this.colpoEndOverlayDriftMin,
-      this.colpoEndOverlayDriftMax,
-    );
-
-    const runFadeAndOutro = (): void => {
-      this.tweens.add({
-        targets: txt,
-        y: cy + yDrift,
-        alpha: 0,
-        duration: fadeMs,
-        ease: "Sine.easeIn",
-        onComplete: () => {
-          txt.destroy();
-
-          const goOutro = (delayMs: number) => {
-            this.time.delayedCall(delayMs, () => {
-              if (this.theme) this.theme.stop();
-              this.scene.start(assetConf.scene.outro, {
-                resultStatus: playerWon ? "Win" : "Failed",
-              });
-            });
-          };
-
-          if (outcome === "win") {
-            this.time.delayedCall(this.colpoEndConfettiDelayAfterTitleMs, () => {
-              this.startAnimConfetti();
-              this.audioManager.playAudio(assetConf.audio.endWin);
-              goOutro(3000);
-            });
-          } else if (outcome === "draw") {
-            this.audioManager.playAudio(assetConf.audio.endFailed);
-            goOutro(2000);
-          } else {
-            this.audioManager.playAudio(assetConf.audio.endFailed);
-            goOutro(1000);
-          }
-        },
+    const goOutro = (delayMs: number) => {
+      this.time.delayedCall(delayMs, () => {
+        if (this.theme) this.theme.stop();
+        this.scene.start(assetConf.scene.outro, {
+          resultStatus: playerWon ? "Win" : "Failed",
+        });
       });
     };
 
-    if (holdMs > 0) {
-      this.time.delayedCall(holdMs, runFadeAndOutro);
-    } else {
-      runFadeAndOutro();
-    }
+    const afterOverlayToOutroChain = (): void => {
+      if (outcome === "win") {
+        this.time.delayedCall(this.colpoEndConfettiDelayAfterTitleMs, () => {
+          this.startAnimConfetti();
+          this.audioManager.playAudio(assetConf.audio.endWin);
+          goOutro(3000);
+        });
+      } else {
+        this.audioManager.playAudio(assetConf.audio.endFailed);
+        goOutro(1000);
+      }
+    };
+
+    this.ensureColpoEndResultSheetAnims();
+    const sheet =
+      outcome === "win" ? assetConf.spritesheet.animWin : assetConf.spritesheet.animLose;
+    const animKey =
+      outcome === "win" ? assetConf.keyAnim.animColpoEndWin : assetConf.keyAnim.animColpoEndLose;
+    const maxDisplayW = this.scale.width * 0.9;
+    const sheetScale = Math.min(1, maxDisplayW / sheet.frameWidth);
+
+    const sprite = this.add
+      .sprite(cx, cy, sheet.key)
+      .setOrigin(0.5)
+      .setDepth(96)
+      .setScrollFactor(0)
+      .setScale(sheetScale);
+
+    const finishSpriteOverlay = (): void => {
+      if (!sprite.active) {
+        return;
+      }
+      sprite.stop();
+      sprite.destroy();
+      afterOverlayToOutroChain();
+    };
+
+    sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      finishSpriteOverlay();
+    });
+    sprite.play(animKey);
   }
 }

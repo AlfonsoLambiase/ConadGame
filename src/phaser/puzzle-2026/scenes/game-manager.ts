@@ -67,12 +67,32 @@ export class GameManager extends Phaser.Scene {
 
   private static readonly STAR_TEXTURE_KEY = "__puzzle_star__";
 
-  private static readonly MERGE_WORDS: Array<{min: number; words: string[]}> = [
-    {min: 3, words: ["Bene!", "Bravo!", "Ottimo!"]},
-    {min: 5, words: ["Eccellente!", "Fantastico!", "Magnifico!"]},
-    {min: 7, words: ["Incredibile!", "Spettacolare!", "Leggendario!"]},
-    {min: 9, words: ["PERFETTO!", "PUZZLE COMPLETO!"]},
+  /** Card puzzle disponibili; a ogni `create()` se ne sceglie una a caso. */
+  private static readonly PUZZLE_CARD_TEXTURE_KEYS: readonly string[] = [
+    assetConf.image.card_1,
+    assetConf.image.card_2,
+    assetConf.image.card_3,
+    assetConf.image.card_4,
+    assetConf.image.card_5,
+    assetConf.image.card_6,
+    assetConf.image.card_7,
   ];
+
+  /** Texture card usata per tutta la partita corrente. */
+  private sessionPuzzleCardKey!: string;
+
+  /** Tier → chiavi texture `assetConf.image` (PNG scritte). */
+  private static readonly MERGE_SCRITTE: Array<{min: number; keys: string[]}> = [
+    {min: 3, keys: ["scritta_bene", "scritta_bravo", "scritta_ottimo"]},
+    {min: 5, keys: ["scritta_eccellente", "scritta_fantastico", "scritta_magnifico"]},
+    {min: 7, keys: ["scritta_incredibile", "scritta_spettacolare", "scritta_leggendario"]},
+    {min: 9, keys: ["scritta_perfetto", "scritta_puzzle_completato"]},
+  ];
+
+  /** Ordine anteprima tasto T (stesse scritte, in ordine di tier). */
+  private static readonly SCRITTE_PREVIEW_ORDER: string[] = GameManager.MERGE_SCRITTE.flatMap(
+    (t) => t.keys,
+  );
 
   private static readonly MERGE_PULSE_DELAY_MS = 140;
   private static readonly MERGE_PULSE_SCALE = 1.06;
@@ -92,6 +112,12 @@ export class GameManager extends Phaser.Scene {
   /** Numero di coppie adiacenti collegate (per rilevare nuove unioni senza crescita del max). */
   private prevLinkedEdgeCount: number | null = null;
 
+  /** Overlay scritta al centro (merge o anteprima T); cleanup tween se ne parte un altro. */
+  private scrittaOverlayImage: Phaser.GameObjects.Image | null = null;
+
+  /** Indice ciclo anteprima tasto T su tutte le `SCRITTE_PREVIEW_ORDER`. */
+  private scrittaPreviewIndex = 0;
+
   constructor() {
     super({key: assetConf.scene.gameManager});
   }
@@ -107,6 +133,7 @@ export class GameManager extends Phaser.Scene {
     this.computeLayoutDimensions();
     this.ensureStarTexture();
 
+    this.pickSessionPuzzleCardTexture();
     this.logLoadedImageSizes();
     this.createPuzzleStep1();
 
@@ -114,11 +141,86 @@ export class GameManager extends Phaser.Scene {
       this.canShoot = true;
       this.isGameOver = false;
     });
+
+    //this.setupTestScritteShortcut(); //* Metodo usato solamente per testare le scritte con il tasto "T".
+  }
+
+  //* Metodo usato solamente per testare le scritte con il tasto "T".
+  private setupTestScritteShortcut(): void {
+    const keyT = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.T);
+
+    keyT?.on("down", () => {
+      const order = GameManager.SCRITTE_PREVIEW_ORDER;
+      const key = order[this.scrittaPreviewIndex % order.length];
+
+      this.scrittaPreviewIndex++;
+      this.playCenteredScrittaOverlay(key);
+    });
+  }
+
+  /**
+   * Scritta PNG al centro schermo: scala 0→max + alpha 0→1, poi sale e alpha→0 (stessa logica del vecchio test “Bravo”).
+   */
+  private playCenteredScrittaOverlay(textureKey: string): void {
+    if (!this.gameScene) return;
+
+    if (!this.textures.exists(textureKey)) {
+      console.warn(`[Puzzle2026] texture mancante per overlay: "${textureKey}"`);
+
+      return;
+    }
+
+    if (this.scrittaOverlayImage) {
+      this.tweens.killTweensOf(this.scrittaOverlayImage);
+      this.scrittaOverlayImage.destroy();
+      this.scrittaOverlayImage = null;
+    }
+
+    const cam = this.cameras.main;
+    const maxScale = this.gameScene.setDynamicValueBasedOnScale(0.45, 1.1);
+    const floatDy = this.gameScene.setDynamicValueBasedOnScale(-56, -96);
+
+    const img = this.add
+      .image(cam.centerX, cam.centerY, textureKey)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2000)
+      .setScale(0)
+      .setAlpha(0);
+
+    this.scrittaOverlayImage = img;
+
+    this.tweens.add({
+      targets: img,
+      scale: maxScale,
+      alpha: 1,
+      duration: 420,
+      ease: "Cubic.out",
+      onComplete: () => {
+        this.tweens.add({
+          targets: img,
+          y: img.y + floatDy,
+          alpha: 0,
+          duration: 720,
+          ease: "Sine.in",
+          onComplete: () => {
+            if (this.scrittaOverlayImage === img) this.scrittaOverlayImage = null;
+            img.destroy();
+          },
+        });
+      },
+    });
   }
 
   /** Numero totale di card in griglia (= max score). */
   private getTotalGridCells(): number {
     return this.puzzleRows * this.puzzleCols;
+  }
+
+  private pickSessionPuzzleCardTexture(): void {
+    this.sessionPuzzleCardKey = Phaser.Utils.Array.GetRandom([
+      ...GameManager.PUZZLE_CARD_TEXTURE_KEYS,
+    ]) as string;
   }
 
   private logLoadedImageSizes(): void {
@@ -132,7 +234,8 @@ export class GameManager extends Phaser.Scene {
     };
 
     logSize(assetConf.image.bg_card);
-    logSize(assetConf.image.card_1);
+    logSize(this.sessionPuzzleCardKey);
+    console.log("[Puzzle2026] session puzzle card:", this.sessionPuzzleCardKey);
   }
 
   private createPuzzleStep1(): void {
@@ -146,7 +249,7 @@ export class GameManager extends Phaser.Scene {
 
     if (this.mainContainer) this.mainContainer.destroy(true);
 
-    const yTop = this.gameScene.uiManager.getScoreHudBottomY();
+    const yTop = this.gameScene.uiManager.getLogoAreaBottomY();
     const yBottom = this.gameScene.uiManager.getHelpButtonTopY();
     const puzzleCenterY = (yTop + yBottom) / 2;
 
@@ -173,7 +276,7 @@ export class GameManager extends Phaser.Scene {
   }
 
   private computeCardDisplaySize(): void {
-    const texKey = assetConf.image.card_1;
+    const texKey = this.sessionPuzzleCardKey;
     const tex = this.textures.get(texKey);
     const src = tex?.getSourceImage() as HTMLImageElement | HTMLCanvasElement | undefined;
     const srcW = src ? src.width : this.CARD_MAX_W;
@@ -875,68 +978,17 @@ export class GameManager extends Phaser.Scene {
   private showMergeWord(cellIndices: number[]): void {
     const size = cellIndices.length;
 
-    let wordPool: string[] | null = null;
+    let keyPool: string[] | null = null;
 
-    for (const tier of GameManager.MERGE_WORDS) {
-      if (size >= tier.min) wordPool = tier.words;
+    for (const tier of GameManager.MERGE_SCRITTE) {
+      if (size >= tier.min) keyPool = tier.keys;
     }
 
-    if (!wordPool) return;
+    if (!keyPool?.length) return;
 
-    const word = Phaser.Utils.Array.GetRandom(wordPool) as string;
+    const textureKey = Phaser.Utils.Array.GetRandom(keyPool) as string;
 
-    let cx = 0;
-    let cy = 0;
-
-    for (const ci of cellIndices) {
-      const center = this.cellCenters[ci];
-
-      if (!center) continue;
-
-      cx += center.x;
-      cy += center.y;
-    }
-
-    cx /= cellIndices.length;
-    cy /= cellIndices.length;
-
-    const fontSize = Math.min(36 + size * 4, 64);
-
-    const text = this.add
-      .text(cx, cy, word, {
-        fontFamily: "Arial Black, Arial, sans-serif",
-        fontSize: `${fontSize}px`,
-        color: "#ffffff",
-        stroke: "#ff8800",
-        strokeThickness: 6,
-        align: "center",
-      })
-      .setOrigin(0.5)
-      .setAlpha(0)
-      .setScale(0.3)
-      .setDepth(100);
-
-    this.piecesContainer.add(text);
-
-    this.tweens.add({
-      targets: text,
-      alpha: 1,
-      scale: 1.2,
-      duration: 300,
-      ease: "Back.easeOut",
-      onComplete: () => {
-        this.tweens.add({
-          targets: text,
-          alpha: 0,
-          scale: 1.8,
-          y: cy - 40,
-          duration: 600,
-          ease: "Sine.easeIn",
-          delay: 400,
-          onComplete: () => text.destroy(),
-        });
-      },
-    });
+    this.playCenteredScrittaOverlay(textureKey);
   }
 
   private isPuzzleSolved(): boolean {
@@ -1021,7 +1073,7 @@ export class GameManager extends Phaser.Scene {
   private spawnPuzzlePieces(params: {rows: number; cols: number}): void {
     const {rows, cols} = params;
 
-    const texKey = assetConf.image.card_1;
+    const texKey = this.sessionPuzzleCardKey;
     const tex = this.textures.get(texKey);
     const source = tex.getSourceImage() as HTMLImageElement | HTMLCanvasElement | undefined;
     const srcW = source ? source.width : this.CARD_MAX_W;
@@ -1038,7 +1090,7 @@ export class GameManager extends Phaser.Scene {
     this.prevMaxLinkedSize = null;
     this.prevLinkedEdgeCount = null;
 
-    const framePrefix = `pzl_${rows}x${cols}_`;
+    const framePrefix = `pzl_${texKey}_${rows}x${cols}_`;
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {

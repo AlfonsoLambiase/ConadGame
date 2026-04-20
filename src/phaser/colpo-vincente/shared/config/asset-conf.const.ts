@@ -148,8 +148,21 @@ export const ColpoVincenteAssetConf = {
     animBandiera: {
       // 38
       frameWidth: 263,
-      frameHeight: 263,
+      frameHeight: 283,
       key: "animBandiera",
+    },
+
+    /** Fine partita: banner vittoria (20 frame, 586×166). */
+    animWin: {
+      frameWidth: 586,
+      frameHeight: 166,
+      key: "animWin",
+    },
+    /** Fine partita: banner sconfitta (20 frame, 586×166). */
+    animLose: {
+      frameWidth: 586,
+      frameHeight: 166,
+      key: "animLose",
     },
   },
   keyAnim: {
@@ -170,6 +183,9 @@ export const ColpoVincenteAssetConf = {
     animBallEnemySpin: "animBallEnemySpin",
     // for flag
     animBandieraLoop: "animBandieraLoop",
+    // fine partita win/lose overlay
+    animColpoEndWin: "animColpoEndWin",
+    animColpoEndLose: "animColpoEndLose",
   },
   font: {
     "PaytoneOne-Regular": "PaytoneOne-Regular",

@@ -39,6 +39,25 @@ export const Puzzle2026AssetConf = {
     // for specific game
     bg_card: "bg_card",
     card_1: "card_1",
+    card_2: "card_2",
+    card_3: "card_3",
+    card_4: "card_4",
+    card_5: "card_5",
+    card_6: "card_6",
+    card_7: "card_7",
+
+    // Scritte merge (PNG); stessi tier di MERGE_SCRITTE in game-manager
+    scritta_bene: "scritta_bene",
+    scritta_bravo: "scritta_bravo",
+    scritta_ottimo: "scritta_ottimo",
+    scritta_eccellente: "scritta_eccellente",
+    scritta_fantastico: "scritta_fantastico",
+    scritta_magnifico: "scritta_magnifico",
+    scritta_incredibile: "scritta_incredibile",
+    scritta_spettacolare: "scritta_spettacolare",
+    scritta_leggendario: "scritta_leggendario",
+    scritta_perfetto: "scritta_perfetto",
+    scritta_puzzle_completato: "scritta_puzzle_completato",
 
     // for exitManager
     btnExitGame: "btnExitGame",

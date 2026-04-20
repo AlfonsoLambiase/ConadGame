@@ -21,7 +21,7 @@ export const ColpoVincenteGameplayConfig = {
    * Raggio collider `boccino` (cerchio Matter): `round(110 * boccinoPhysicsRadiusMul)`.
    * Stesso riferimento half-texture della palla; modifica qui per ridimensionare il collider.
    */
-  boccinoPhysicsRadiusMul: 0.25,
+  boccinoPhysicsRadiusMul: 0.3, // 0.25
   /** Cerchio arancione sovrapposto al collider del boccino (debug / tuning). */
   boccinoColliderDebugVisible: false, //! debug collider boccino, false disattivato.
   boccinoStoppedSpeedThreshold: 14,
@@ -166,7 +166,7 @@ export const ColpoVincenteGameplayConfig = {
    * Fine partita: il testo risultato non compare prima di questo tempo dall’istante in cui l’IA
    * ha lanciato l’ultima ball_enemy. Se l’esito viene calcolato dopo, non si aspetta oltre.
    */
-  colpoEndOverlayMinMsAfterLastEnemyLaunch: 2000,
+  colpoEndOverlayMinMsAfterLastEnemyLaunch: 1500,
   /** ms con il testo risultato fermo a piena opacità prima della dissolvenza (tempo per il resoconto). */
   colpoEndOverlayHoldBeforeFadeMs: 2000,
   /** Dissolvenza + scorrimento verso il basso del testo risultato (ms). */
@@ -211,10 +211,10 @@ export const ColpoVincenteGameplayConfig = {
   */
 
   /**
-   * Distanza minima squadra (px, float): pareggio solo se |d_player − d_enemy| < ε.
-   * Valore piccolo = vince la palla davvero più vicina; ε serve solo al rumore float/sub-pixel.
+   * Distanza minima (metri): se |d_player − d_enemy| < ε → vittoria player (ex pareggio).
+   * Serve solo al rumore floating-point; 0.005 m ≈ 5 mm.
    */
-  matchTieDistanceEpsilonPx: 0.5,
+  matchTieDistanceEpsilonM: 0.005,
 
   /** Fisica ball_enemy (stessa famiglia della ball_player). */
   ballEnemyDensity: 0.0048,
@@ -232,7 +232,7 @@ export const ColpoVincenteGameplayConfig = {
    * Raggio collider `ball_player` (cerchio Matter): `round(110 * ballPlayerPhysicsRadiusMul)`.
    * Stesso riferimento half-texture della palla; modifica qui per ridimensionare il collider.
    */
-  ballPlayerPhysicsRadiusMul: 0.75,
+  ballPlayerPhysicsRadiusMul: 0.85, // 0.75
   /** Cerchio verde sovrapposto al collider della ball_player (debug / tuning). */
   ballPlayerColliderDebugVisible: false, //! debug collider ball_player, false disattivato.
   /** Scala base sprite bandierino (prima della prospettiva in base alla distanza). */
@@ -295,9 +295,8 @@ export const ColpoVincenteGameplayConfig = {
   laneMinimapOffsetBelowShotChipsPxMin: 8,
   laneMinimapOffsetBelowShotChipsPxMax: 16,
   laneMinimapColorBoccino: 0xfff6d6,
-  /** Minimap: invertiti rispetto agli HUD corsia (player = arancio, nemico = azzurro). */
-  laneMinimapColorPlayer: 0xff7733,
-  laneMinimapColorEnemy: 0x4db8ff,
+  laneMinimapColorPlayer: 0x4db8ff,
+  laneMinimapColorEnemy: 0xff7733,
 
   /**
    * Testo distanza (metri) nei pannelli score. false = nascosto; i setter continuano ad aggiornare il testo per riattivare senza toccare il codice.
