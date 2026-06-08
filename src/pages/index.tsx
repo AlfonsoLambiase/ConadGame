@@ -13,15 +13,18 @@ const giochi = [
   // { title: "Ritmo Giusto", path: "/giochi/ritmo-giusto" },
   // { title: "Trova Parole", path: "/giochi/trova-parole" },
   // { title: "Prendi Oggetti", path: "/giochi/prendi-oggetti" },
-  { title: "Fai la tua scelta", path: "/giochi/fai-la-tua-scelta" },
-  { title: "Colpo vincente", path: "/giochi/colpo-vincente" },
-  { title: "Puzzle 2026", path: "/giochi/puzzle-2026" },
+  //{ title: "Fai la tua scelta", path: "/giochi/fai-la-tua-scelta" },
+  //{ title: "Colpo vincente", path: "/giochi/colpo-vincente" },
+  //{ title: "Puzzle 2026", path: "/giochi/puzzle-2026" },
+  { title: "Indovina Numero", path: "/giochi/indovina-numero" },
+  { title: "Safari", path: "/giochi/safari" },
+  { title: "Ipposumo", path: "/giochi/ipposumo" },
 ];
 
 export default function Home() {
   return (
     <div className="min-h-screen p-10 flex flex-col items-center gap-10 bg-gray-100">
-      <h1 className="text-3xl font-bold text-black">DEMO GIOCHI v1.0.10</h1>
+      <h1 className="text-3xl font-bold text-black">DEMO GIOCHI v1.0.11</h1>
       <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {giochi.map((gioco) => (
           <li
