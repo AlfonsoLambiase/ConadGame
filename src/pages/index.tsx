@@ -51,7 +51,7 @@ export default function Home() {
             Demo Giochi
           </h1>
           <p className="mt-3 text-base text-slate-400 sm:text-lg">
-            Scegli un gioco e divertiti!
+            Scegli un gioco e provalo subito!
           </p>
         </header>
 
