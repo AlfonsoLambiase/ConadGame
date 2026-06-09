@@ -586,7 +586,7 @@ export class UIManager {
     const insetX = this.gameScene.setDynamicValueBasedOnScale(20, 50);
     const insetY = this.gameScene.setDynamicValueBasedOnScale(20, 50);
     const bottomY = this.scene.scale.height - insetY;
-    const chargeOffsetY = this.gameScene.setDynamicValueBasedOnScale(30, 100);
+    const chargeOffsetY = this.gameScene.setDynamicValueBasedOnScale(40, 115);
     const chargeY = bottomY - chargeOffsetY;
     const hudScale = this.gameScene.setDynamicValueBasedOnScale(0.4, 0.9);
     this.chargeHudScale = hudScale;
