@@ -103,7 +103,36 @@ export type PhotoResultDisplayLayout = {
   corniceScale: number;
   corniceDisplayW: number;
   corniceDisplayH: number;
+  /** Y locale (origine cornice al centro) per il testo risultato */
+  resultTextY: number;
 };
+
+let photoResultSuccessLabelPool: string[] = [];
+
+/** Azzera il ciclo messaggi foto riuscita (chiamare all’inizio partita). */
+export function resetPhotoResultSuccessLabels(): void {
+  photoResultSuccessLabelPool = [...SafariViewfinderConfig.PHOTO_RESULT_SUCCESS_LABELS];
+}
+
+function refillPhotoResultSuccessLabelPoolIfEmpty(): void {
+  if (photoResultSuccessLabelPool.length === 0) {
+    resetPhotoResultSuccessLabels();
+  }
+}
+
+export function getPhotoResultLabel(success: boolean): string {
+  const cfg = SafariViewfinderConfig;
+
+  if (!success) {
+    return cfg.PHOTO_RESULT_FAIL_LABEL;
+  }
+
+  refillPhotoResultSuccessLabelPoolIfEmpty();
+
+  const pickIndex = Phaser.Math.Between(0, photoResultSuccessLabelPool.length - 1);
+
+  return photoResultSuccessLabelPool.splice(pickIndex, 1)[0];
+}
 
 export type PhotoResultOverlayPlacement = {
   centerX: number;
@@ -172,9 +201,21 @@ export function getPhotoResultDisplayLayout(
   const slotH = cfg.PHOTO_IN_CORNICE_SLOT_HEIGHT_UNSCALED_PX * corniceScale;
   const slotLeft = corniceLeft + leftOffset;
 
-  const photoDisplayScale = Math.min(slotW / captureW, slotH / captureH);
+  const widthScale = slotW / captureW;
+  const heightScale = slotH / captureH;
+  const fitScale =
+    cfg.PHOTO_RESULT_DISPLAY_FIT === "cover"
+      ? Math.max(widthScale, heightScale)
+      : Math.min(widthScale, heightScale);
+  const photoDisplayScale = fitScale * cfg.PHOTO_RESULT_DISPLAY_SCALE_BOOST;
   const photoDisplayW = captureW * photoDisplayScale;
   const photoDisplayH = captureH * photoDisplayScale;
+  const slotBottomLocalY =
+    -corniceDisplayH / 2 +
+    (cfg.PHOTO_IN_CORNICE_TOP_OFFSET_UNSCALED_PX + cfg.PHOTO_IN_CORNICE_SLOT_HEIGHT_UNSCALED_PX) *
+      corniceScale;
+  const resultTextY =
+    slotBottomLocalY + cfg.PHOTO_RESULT_LABEL_OFFSET_FROM_SLOT_BOTTOM_UNSCALED_PX * corniceScale;
 
   return {
     photoRect,
@@ -188,6 +229,7 @@ export function getPhotoResultDisplayLayout(
     corniceScale,
     corniceDisplayW,
     corniceDisplayH,
+    resultTextY,
   };
 }
 

@@ -22,6 +22,7 @@ export class UIManager {
   ofssetX: number = 0;
   scoreContainer!: Phaser.GameObjects.Container;
   opponentScoreContainer!: Phaser.GameObjects.Container;
+  arenaContainer!: Phaser.GameObjects.Container;
   arena!: Phaser.GameObjects.Image;
   playerIppo!: Phaser.GameObjects.Sprite;
   enemyIppo!: Phaser.GameObjects.Sprite;
@@ -30,11 +31,10 @@ export class UIManager {
   private ippoCollisionCooldownUntil = 0;
   private enemyAutoPushPausedUntil = 0;
   private isGameFinished = false;
-  private topFinishLineY = 0;
-  private bottomFinishLineY = 0;
-  private finishLineHalfHeight = 3;
   private topFinishLine!: Phaser.GameObjects.Rectangle;
   private bottomFinishLine!: Phaser.GameObjects.Rectangle;
+  private playerColliderDebug!: Phaser.GameObjects.Rectangle;
+  private enemyColliderDebug!: Phaser.GameObjects.Rectangle;
   private enemyAutoPushTimer?: Phaser.Time.TimerEvent;
   private static readonly ENEMY_AUTO_PUSH_INTERVAL_MS = 500;
   private static readonly IPPO_COLLISION_COOLDOWN_MS = 200;
@@ -42,7 +42,6 @@ export class UIManager {
   foregroundCharge!: Phaser.GameObjects.Image;
   fulmine!: Phaser.GameObjects.Image;
   chargeButton!: Phaser.GameObjects.Image;
-  private chargeButtonBaseScale = 1;
   private chargeHudScale = 1;
   private isChargeButtonPressed = false;
   private isHoldCharging = false;
@@ -99,7 +98,7 @@ export class UIManager {
       const {displayWidth, displayHeight} = ippo;
 
       ippo.anims.stop();
-      ippo.setTexture(assetConf.image.ippo2);
+      ippo.setFrame(1);
       ippo.setDisplaySize(displayWidth, displayHeight);
 
       if (ippo.body) {
@@ -122,11 +121,11 @@ export class UIManager {
   }
 
   #getIppoDisplaySize(ippoScale: number): {width: number; height: number} {
-    const ippo1Frame = this.scene.textures.getFrame(assetConf.image.ippo1);
+    const ippoFrame = this.scene.textures.getFrame(assetConf.spritesheet.animIppo.key, 0);
 
     return {
-      width: ippo1Frame.width * ippoScale,
-      height: ippo1Frame.height * ippoScale,
+      width: ippoFrame.width * ippoScale,
+      height: ippoFrame.height * ippoScale,
     };
   }
 
@@ -149,14 +148,17 @@ export class UIManager {
 
     this.scene.anims.create({
       key: assetConf.keyAnim.animIppo,
-      frames: [
-        {key: assetConf.image.ippo1},
-        {key: assetConf.image.ippo2},
-        {key: assetConf.image.ippo3},
-      ],
+      frames: this.scene.anims.generateFrameNumbers(assetConf.spritesheet.animIppo.key, {
+        start: 0,
+        end: 3,
+      }),
       frameRate: 4,
       repeat: -1,
     });
+  }
+
+  #toArenaLocalDistance(worldDistance: number): number {
+    return worldDistance / (this.arenaContainer?.scale ?? 1);
   }
 
   #createArena() {
@@ -164,72 +166,98 @@ export class UIManager {
     const centerY = this.scene.scale.height / 2;
     const arenaOffsetY = this.gameScene.setDynamicValueBasedOnScale(25, 60);
     const arenaCenterY = centerY + arenaOffsetY;
-    const arenaScale = this.gameScene.setDynamicValueBasedOnScale(0.4, 0.9);
-    const ippoScale = this.gameScene.setDynamicValueBasedOnScale(0.4, 0.8);
+    const arenaScale = this.gameScene.setDynamicValueBasedOnScale(0.3, 1.0); //* scala container arena
+    const ippoScale = this.gameScene.setDynamicValueBasedOnScale(0.3, 1.0); //* scala ippos (relativa al container)
+    const ippoLocalScale = ippoScale / arenaScale;
 
-    this.arena = this.scene.add.image(centerX, arenaCenterY, assetConf.image.arena);
-    this.arena.setOrigin(0.5).setDepth(-1).setScrollFactor(0).setScale(arenaScale);
+    this.arenaContainer = this.scene.add
+      .container(centerX, arenaCenterY)
+      .setDepth(0)
+      .setScrollFactor(0);
 
-    const arenaHalfHeight = this.arena.displayHeight / 2;
-    const ippoOffsetY = this.gameScene.setDynamicValueBasedOnScale(30, 70);
+    this.arena = this.scene.add.image(0, 0, assetConf.image.arena);
+    this.arena.setOrigin(0.5).setDepth(0);
+
+    const arenaHalfHeight = this.arena.height / 2;
+    const ippoOffsetY = this.gameScene.setDynamicValueBasedOnScale(30, 70) / arenaScale;
 
     this.#createIppoAnimation();
 
-    // PLAYER — ippo in basso
+    // PLAYER — ippo in basso (coordinate locali al container)
     this.playerIppo = this.scene.add.sprite(
-      centerX,
-      arenaCenterY + arenaHalfHeight + ippoOffsetY,
-      assetConf.image.ippo1,
+      0,
+      arenaHalfHeight + ippoOffsetY,
+      assetConf.spritesheet.animIppo.key,
     );
-    this.playerIppo
-      .setOrigin(0.5, 1)
-      .setFlipY(true)
-      .setDepth(1)
-      .setScrollFactor(0)
-      .play(assetConf.keyAnim.animIppo);
-    this.#applyIppoDisplaySize(this.playerIppo, ippoScale);
+    this.playerIppo.setOrigin(0.5, 1).setFlipY(true).setDepth(1).play(assetConf.keyAnim.animIppo);
+    this.#applyIppoDisplaySize(this.playerIppo, ippoLocalScale);
 
     // ENEMY — ippo in alto
     this.enemyIppo = this.scene.add.sprite(
-      centerX,
-      arenaCenterY - arenaHalfHeight - ippoOffsetY,
-      assetConf.image.ippo1,
+      0,
+      -(arenaHalfHeight + ippoOffsetY),
+      assetConf.spritesheet.animIppo.key,
     );
-    this.enemyIppo
-      .setOrigin(0.5, 0)
-      .setDepth(1)
-      .setScrollFactor(0)
-      .play(assetConf.keyAnim.animIppo);
-    this.#applyIppoDisplaySize(this.enemyIppo, ippoScale);
+    this.enemyIppo.setOrigin(0.5, 0).setDepth(1).play(assetConf.keyAnim.animIppo);
+    this.#applyIppoDisplaySize(this.enemyIppo, ippoLocalScale);
+
+    this.arenaContainer.add([this.arena, this.playerIppo, this.enemyIppo]);
+
+    this.#createFinishLines(arenaScale);
+    this.arenaContainer.setScale(arenaScale); //* Modificare valori scala arena (0.4-0.9)
     this.#setupIppoColliders();
-    this.#createFinishLines(centerX);
+    this.#createColliderDebugGraphics();
   }
 
-  #createFinishLines(centerX: number): void {
-    const enemyBounds = this.#getIppoColliderBounds(this.enemyIppo);
-    const playerBounds = this.#getIppoColliderBounds(this.playerIppo);
-    const margin = this.gameScene.setDynamicValueBasedOnScale(20, 40);
-    const upwardShift = this.gameScene.setDynamicValueBasedOnScale(15, 30);
-    const lineWidth = this.arena.displayWidth * 0.85;
-    const lineHeight = 6;
-    this.finishLineHalfHeight = lineHeight / 2;
-
-    // Sopra lo spawn iniziale enemy — win solo se spinto oltre
-    this.topFinishLineY = enemyBounds.top - margin - upwardShift;
-    // Sotto lo spawn iniziale player — lose solo se spinto oltre
-    this.bottomFinishLineY = playerBounds.bottom + margin - upwardShift;
+  #createFinishLines(arenaScale: number): void {
+    const arenaHalfHeight = this.arena.height / 2;
+    const arenaTop = -arenaHalfHeight;
+    const arenaBottom = arenaHalfHeight;
+    const topOffset = this.gameScene.setDynamicValueBasedOnScale(35, 70) / arenaScale;
+    const bottomOffset = this.gameScene.setDynamicValueBasedOnScale(35, 70) / arenaScale;
+    const lineWidth = this.arena.width * 0.85;
+    const lineHeight = this.gameScene.setDynamicValueBasedOnScale(4, 8) / arenaScale;
 
     this.topFinishLine = this.scene.add
-      .rectangle(centerX, this.topFinishLineY, lineWidth, lineHeight, 0xffffff, 0)
+      .rectangle(0, arenaTop + topOffset, lineWidth, lineHeight, 0x00ff00, 0)
       .setOrigin(0.5)
-      .setDepth(2)
-      .setScrollFactor(0);
+      .setDepth(2);
 
     this.bottomFinishLine = this.scene.add
-      .rectangle(centerX, this.bottomFinishLineY, lineWidth, lineHeight, 0xffffff, 0)
+      .rectangle(0, arenaBottom - bottomOffset, lineWidth, lineHeight, 0xff0000, 0)
       .setOrigin(0.5)
-      .setDepth(2)
+      .setDepth(2);
+
+    this.arenaContainer.add([this.topFinishLine, this.bottomFinishLine]);
+  }
+
+  #createColliderDebugGraphics(): void {
+    this.playerColliderDebug = this.scene.add
+      .rectangle(0, 0, 1, 1, 0x00aaff, 0)
+      .setOrigin(0, 0)
+      .setDepth(3)
       .setScrollFactor(0);
+
+    this.enemyColliderDebug = this.scene.add
+      .rectangle(0, 0, 1, 1, 0xffaa00, 0)
+      .setOrigin(0, 0)
+      .setDepth(3)
+      .setScrollFactor(0);
+  }
+
+  #updateColliderDebugGraphics(): void {
+    const debugPairs: [Phaser.GameObjects.Sprite, Phaser.GameObjects.Rectangle][] = [
+      [this.playerIppo, this.playerColliderDebug],
+      [this.enemyIppo, this.enemyColliderDebug],
+    ];
+
+    debugPairs.forEach(([ippo, debugRect]) => {
+      if (!ippo || !debugRect) return;
+
+      const bounds = this.#getIppoColliderBounds(ippo);
+      debugRect.setPosition(bounds.x, bounds.y);
+      debugRect.setSize(bounds.width, bounds.height);
+    });
   }
 
   #getIppoColliderSize(sprite: Phaser.GameObjects.Sprite): {width: number; height: number} {
@@ -240,26 +268,27 @@ export class UIManager {
   }
 
   #getIppoColliderBounds(sprite: Phaser.GameObjects.Sprite): Phaser.Geom.Rectangle {
+    const displayBounds = sprite.getBounds();
     const {width: colliderW, height: colliderH} = this.#getIppoColliderSize(sprite);
-    const spriteLeft = sprite.x - sprite.displayWidth * sprite.originX;
-    const spriteTop = sprite.y - sprite.displayHeight * sprite.originY;
-    const colliderLeft = spriteLeft + (sprite.displayWidth - colliderW) / 2;
+    const colliderLeft = displayBounds.centerX - colliderW / 2;
     const colliderTop =
-      sprite === this.enemyIppo ? spriteTop + sprite.displayHeight - colliderH : spriteTop;
+      sprite === this.enemyIppo ? displayBounds.bottom - colliderH : displayBounds.top;
 
     return new Phaser.Geom.Rectangle(colliderLeft, colliderTop, colliderW, colliderH);
   }
 
   #fitIppoBody(sprite: Phaser.GameObjects.Sprite): void {
     const body = sprite.body as Phaser.Physics.Arcade.Body;
-    const bounds = this.#getIppoColliderBounds(sprite);
-    const spriteLeft = sprite.x - sprite.displayWidth * sprite.originX;
-    const spriteTop = sprite.y - sprite.displayHeight * sprite.originY;
+    const colliderBounds = this.#getIppoColliderBounds(sprite);
+    const displayBounds = sprite.getBounds();
     const scaleX = sprite.scaleX || 1;
     const scaleY = sprite.scaleY || 1;
 
-    body.setSize(bounds.width / scaleX, bounds.height / scaleY);
-    body.setOffset((bounds.left - spriteLeft) / scaleX, (bounds.top - spriteTop) / scaleY);
+    body.setSize(colliderBounds.width / scaleX, colliderBounds.height / scaleY);
+    body.setOffset(
+      (colliderBounds.left - displayBounds.left) / scaleX,
+      (colliderBounds.top - displayBounds.top) / scaleY,
+    );
     body.updateFromGameObject();
   }
 
@@ -285,6 +314,7 @@ export class UIManager {
   }
 
   #onGameUpdate(): void {
+    this.#updateColliderDebugGraphics();
     this.#checkIppoSeparation();
     this.#checkFinishLines();
   }
@@ -330,7 +360,7 @@ export class UIManager {
 
     this.scene.tweens.add({
       targets: this.enemyIppo,
-      y: this.enemyIppo.y + pushStep,
+      y: this.enemyIppo.y + this.#toArenaLocalDistance(pushStep),
       duration,
       ease: "Quad.easeOut",
       onComplete: () => {
@@ -452,14 +482,14 @@ export class UIManager {
 
     this.scene.tweens.add({
       targets: this.enemyIppo,
-      y: this.enemyIppo.y - enemySeparation,
+      y: this.enemyIppo.y - this.#toArenaLocalDistance(enemySeparation),
       duration,
       ease: knockback > 1 ? "Cubic.easeOut" : "Quad.easeOut",
     });
 
     this.scene.tweens.add({
       targets: this.playerIppo,
-      y: this.playerIppo.y + playerSeparation,
+      y: this.playerIppo.y + this.#toArenaLocalDistance(playerSeparation),
       duration,
       ease: "Quad.easeOut",
     });
@@ -484,8 +514,10 @@ export class UIManager {
     const playerBounds = this.#getIppoColliderBounds(this.playerIppo);
     const passBuffer = this.gameScene.setDynamicValueBasedOnScale(3, 10);
 
-    const topLineEdge = this.topFinishLineY - this.finishLineHalfHeight;
-    const bottomLineEdge = this.bottomFinishLineY + this.finishLineHalfHeight;
+    const topLineBounds = this.topFinishLine.getBounds();
+    const bottomLineBounds = this.bottomFinishLine.getBounds();
+    const topLineEdge = topLineBounds.top;
+    const bottomLineEdge = bottomLineBounds.bottom;
 
     // Win: tutto il collider enemy oltre la linea alta
     if (enemyBounds.bottom < topLineEdge - passBuffer) {
@@ -555,16 +587,14 @@ export class UIManager {
     const insetY = this.gameScene.setDynamicValueBasedOnScale(20, 50);
     const bottomY = this.scene.scale.height - insetY;
     const chargeOffsetY = this.gameScene.setDynamicValueBasedOnScale(30, 100);
+    const chargeY = bottomY - chargeOffsetY;
     const hudScale = this.gameScene.setDynamicValueBasedOnScale(0.4, 0.9);
     this.chargeHudScale = hudScale;
 
-    this.foregroundCharge = this.scene.add.image(
-      insetX,
-      bottomY - chargeOffsetY,
-      assetConf.image.foregroundCharge,
-    );
+    this.foregroundCharge = this.scene.add.image(0, chargeY, assetConf.image.foregroundCharge);
 
-    this.foregroundCharge.setOrigin(0, 1).setDepth(8).setScrollFactor(0).setScale(hudScale);
+    this.foregroundCharge.setOrigin(0.5, 0.5).setDepth(8).setScrollFactor(0).setScale(hudScale);
+    this.foregroundCharge.setX(insetX + this.foregroundCharge.displayWidth / 2);
 
     this.fulmine = this.scene.add.image(
       this.foregroundCharge.x,
@@ -573,25 +603,23 @@ export class UIManager {
     );
 
     this.fulmine
-      .setOrigin(0, 1)
+      .setOrigin(0.5, 0.5)
       .setDepth(11)
       .setScrollFactor(0)
       .setDisplaySize(this.foregroundCharge.displayWidth, this.foregroundCharge.displayHeight);
 
     this.chargeButton = this.scene.add.image(
       this.scene.scale.width / 2,
-      bottomY,
-      assetConf.image.button,
+      chargeY,
+      assetConf.image.btn_unpressed,
     );
 
-    this.chargeButton.setOrigin(0.5, 1).setDepth(8).setScrollFactor(0).setScale(hudScale);
+    this.chargeButton.setOrigin(0.5, 0.5).setDepth(8).setScrollFactor(0).setScale(hudScale);
 
-    this.#setupChargeButton(hudScale);
+    this.#setupChargeButton();
   }
 
-  #setupChargeButton(hudScale: number): void {
-    this.chargeButtonBaseScale = hudScale;
-
+  #setupChargeButton(): void {
     this.chargeButton.setInteractive({useHandCursor: true});
     this.chargeButton.on("pointerdown", () => this.#onChargePointerDown());
     this.chargeButton.on("pointerup", () => this.#onChargePointerUp());
@@ -601,7 +629,7 @@ export class UIManager {
   #onChargePointerDown(): void {
     this.isChargeButtonPressed = true;
     this.isHoldCharging = false;
-    this.#pulseChargeButton();
+    this.chargeButton.setTexture(assetConf.image.btn_pressed);
     this.#clearChargeOverlay();
     this.#setChargeLevel(1);
 
@@ -618,6 +646,7 @@ export class UIManager {
     if (!this.isChargeButtonPressed) return;
 
     this.isChargeButtonPressed = false;
+    this.chargeButton.setTexture(assetConf.image.btn_unpressed);
     this.chargeHoldDelay?.destroy();
     this.chargeHoldDelay = undefined;
     this.#stopHoldChargeProgression();
@@ -673,7 +702,7 @@ export class UIManager {
       this.chargeOverlayKeys[chargeIndex],
     );
 
-    chargeOverlay.setOrigin(0, 1).setDepth(10).setScrollFactor(0).setScale(this.chargeHudScale);
+    chargeOverlay.setOrigin(0.5, 0.5).setDepth(10).setScrollFactor(0).setScale(this.chargeHudScale);
 
     return chargeOverlay;
   }
@@ -682,21 +711,6 @@ export class UIManager {
     this.activeChargeOverlay?.destroy();
     this.activeChargeOverlay = null;
     this.currentChargeLevel = 0;
-  }
-
-  #pulseChargeButton(): void {
-    const baseScale = this.chargeButtonBaseScale;
-
-    this.scene.tweens.killTweensOf(this.chargeButton);
-    this.chargeButton.setScale(baseScale);
-
-    this.scene.tweens.add({
-      targets: this.chargeButton,
-      scale: baseScale * 0.85,
-      duration: 100,
-      yoyo: true,
-      ease: "Quad.easeOut",
-    });
   }
 
   #pushPlayerIppoUp(chargeLevel: number, isHoldCharge: boolean, onComplete?: () => void): void {
@@ -711,7 +725,7 @@ export class UIManager {
       ? this.gameScene.setDynamicValueBasedOnScale(12, 28)
       : tapPush.pushStep;
     const holdStepMultiplier = isHoldCharge ? 1 + clampedLevel * 0.5 : 1;
-    const pushStep = basePushStep * holdStepMultiplier;
+    const pushStep = this.#toArenaLocalDistance(basePushStep * holdStepMultiplier);
     const stepDuration = isHoldCharge ? 80 + clampedLevel * 6 : tapPush.duration;
     let stepsDone = 0;
 

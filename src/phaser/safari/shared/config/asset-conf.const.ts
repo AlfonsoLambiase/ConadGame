@@ -40,6 +40,7 @@ export const SafariAssetConf = {
     // for specific game
     background_Sky: "background_Sky",
     background_Terrain: "background_Terrain",
+    background_Speed: "background_Speed",
     background_camera_1: "background_camera_1",
     background_camera_2: "background_camera_2",
     card_1: "card_1",

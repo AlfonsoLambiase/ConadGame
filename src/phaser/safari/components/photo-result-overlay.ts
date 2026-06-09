@@ -6,7 +6,11 @@ import {SafariAssetConf} from "../shared/config/asset-conf.const";
 import {SafariViewfinderConfig} from "../shared/config/viewfinder.config";
 
 import {buildPhotoComposite, mountPhotoCompositeForDisplay} from "./photo-composite.builder";
-import {getPhotoResultDisplayLayout, type PhotoResultOverlayPlacement} from "./photo-shot.utils";
+import {
+  getPhotoResultDisplayLayout,
+  getPhotoResultLabel,
+  type PhotoResultOverlayPlacement,
+} from "./photo-shot.utils";
 
 const assetConf = SafariAssetConf;
 
@@ -68,6 +72,7 @@ export class PhotoResultOverlay {
       corniceScale,
       corniceDisplayH,
       corniceDisplayW,
+      resultTextY,
     } = layout;
     const captureW = Math.max(1, Math.ceil(photoResultRect.width));
     const captureH = Math.max(1, Math.ceil(photoResultRect.height));
@@ -129,11 +134,10 @@ export class PhotoResultOverlay {
 
     revealContainer.add(cornice);
 
-    const resultLabel = evaluation.success ? "OTTIMA FOTO!" : "FOTO FALLITA";
-    const resultColor = evaluation.success ? "#4caf50" : "#e53935";
-    const resultTextY = corniceDisplayH / 2 + 24;
+    const resultLabel = getPhotoResultLabel(evaluation.success);
+    const resultColor = evaluation.success ? "#ed6e0b" : "#e53935";
     const resultText = scene.add
-      .text(0, resultTextY - 10, resultLabel, {
+      .text(0, resultTextY - 8, resultLabel, {
         fontFamily: "Paytone One, Arial, sans-serif",
         fontSize: `${Math.max(22, Math.round(gameWidth * 0.045))}px`,
         color: resultColor,

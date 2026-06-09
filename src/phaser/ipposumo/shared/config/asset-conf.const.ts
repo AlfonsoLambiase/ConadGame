@@ -33,13 +33,11 @@ export const IpposumoAssetConf = {
     endWin: "endWin",
     endFailed: "endFailed",
     endBackground: "endBackground",
-    button: "button",
     arena: "arena",
-    ippo1: "ippo1",
-    ippo2: "ippo2",
-    ippo3: "ippo3",
     points: "points",
     scontro: "scontro",
+    btn_pressed: "btn_pressed",
+    btn_unpressed: "btn_unpressed",
     foregroundCharge: "foregroundCharge",
     fulmine: "fulmine",
     charge_1: "charge_1",
@@ -92,6 +90,12 @@ export const IpposumoAssetConf = {
       frameWidth: 897,
       frameHeight: 253,
       key: "tutorialText03",
+    },
+    // for ipposumo wrestlers (4 frame)
+    animIppo: {
+      frameWidth: 429,
+      frameHeight: 517,
+      key: "animIppo",
     },
 
     // for confetti - fine partita

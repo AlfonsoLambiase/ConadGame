@@ -8,6 +8,7 @@ import {
   getPhotoResultOverlayPlacement,
   getViewfinderRects,
   logShotEvaluation,
+  resetPhotoResultSuccessLabels,
 } from "../components/photo-shot.utils";
 import {SafariAssetConf} from "../shared/config/asset-conf.const";
 import {SafariViewfinderConfig} from "../shared/config/viewfinder.config";
@@ -22,6 +23,8 @@ const DEPTH_BACKGROUND_GAME = -1;
 const DEPTH_BACKGROUND_SKY = 0;
 const DEPTH_BACKGROUND_CAMERA = 1;
 const DEPTH_BACKGROUND_CARD = 2;
+/** Sopra sky/camera/card; sotto terrain */
+const DEPTH_BACKGROUND_SPEED = 2.5;
 const DEPTH_BACKGROUND_TERRAIN = 3;
 const DEPTH_CAMERA_ZOOM = 10;
 const DEPTH_CAMERA_BTN = 11;
@@ -47,6 +50,7 @@ export class GameManager extends Phaser.Scene {
   private gameHeight!: number;
 
   private backgroundSky!: Phaser.GameObjects.Image;
+  private backgroundSpeed!: Phaser.GameObjects.Image;
   private backgroundTerrain!: Phaser.GameObjects.Image;
   private cameraScrollContainer!: Phaser.GameObjects.Container;
   private cardScrollContainer!: Phaser.GameObjects.Container;
@@ -89,6 +93,7 @@ export class GameManager extends Phaser.Scene {
 
   create() {
     console.log("Start Scene Safari");
+    resetPhotoResultSuccessLabels();
     this.computeLayoutDimensions();
     this.createBackgroundGame();
     this.createBackgrounds();
@@ -135,6 +140,7 @@ export class GameManager extends Phaser.Scene {
     this.applyWidthCoverScale(this.backgroundSky);
     this.backgroundScale = this.applyWidthCoverScale(this.backgroundTerrain);
     this.applyTerrainLayout();
+    this.createBackgroundSpeed();
 
     this.createCameraScroll();
     this.createCardScroll();
@@ -151,6 +157,15 @@ export class GameManager extends Phaser.Scene {
 
     // Ancoraggio al bordo alto reale dell’immagine (come layout originale)
     this.scrollAnchorY = this.backgroundTerrain.y - this.backgroundTerrain.displayHeight;
+  }
+
+  /** Stesso pivot di background_camera_1: centro in alto, ancorato al top di background_Terrain */
+  private createBackgroundSpeed(): void {
+    this.backgroundSpeed = this.add
+      .image(this.gameWidth / 2, this.scrollAnchorY, assetConf.image.background_Speed)
+      .setOrigin(0.5, 0)
+      .setScale(this.backgroundScale)
+      .setDepth(DEPTH_BACKGROUND_SPEED);
   }
 
   /**
@@ -459,6 +474,7 @@ export class GameManager extends Phaser.Scene {
 
   private setLiveGameplayVisible(visible: boolean): void {
     this.backgroundSky.setVisible(visible);
+    this.backgroundSpeed.setVisible(visible);
     this.backgroundTerrain.setVisible(visible);
     this.cameraScrollContainer.setVisible(visible);
     this.cardScrollContainer.setVisible(visible);

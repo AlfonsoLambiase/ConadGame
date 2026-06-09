@@ -38,6 +38,33 @@ export const SafariViewfinderConfig = {
   PHOTO_IN_CORNICE_SLOT_WIDTH_UNSCALED_PX: 830,
   PHOTO_IN_CORNICE_SLOT_HEIGHT_UNSCALED_PX: 460,
 
+  /**
+   * Scala anteprima foto nello slot cornice: `cover` riempie lo slot (taglia i bordi),
+   * `contain` mostra tutta la cattura (può lasciare bande nere ai lati).
+   */
+  PHOTO_RESULT_DISPLAY_FIT: "cover" as const,
+
+  /** Moltiplicatore extra sulla scala display (es. 1.03 per eliminare micro-gap ai bordi) */
+  PHOTO_RESULT_DISPLAY_SCALE_BOOST: 1.03,
+
+  /**
+   * Testo risultato foto: distanza dal bordo basso dello slot foto verso il basso,
+   * nello spazio bianco della cornice (px asset × scala cornice).
+   */
+  PHOTO_RESULT_LABEL_OFFSET_FROM_SLOT_BOTTOM_UNSCALED_PX: 28,
+
+  /** Messaggi random su scatto riuscito */
+  PHOTO_RESULT_SUCCESS_LABELS: [
+    "Super scatto!",
+    "Che tempismo!",
+    "Foto spettacolare!",
+    "Scatto incredibile!",
+    "Scatto da esploratore!",
+    "Ottimo lavoro!",
+  ],
+
+  PHOTO_RESULT_FAIL_LABEL: "FOTO FALLITA",
+
   /** Rettangolo piccolo (focus / centratura animale) */
   // Non serve più per la validazione (usiamo containment su OUTER), resta solo per debug se vuoi.
   INNER: {x: 0.2, y: 0.2, w: 0.6, h: 0.4} satisfies ViewfinderRectNorm,
