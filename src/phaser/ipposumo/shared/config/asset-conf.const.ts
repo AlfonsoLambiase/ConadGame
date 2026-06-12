@@ -1,3 +1,5 @@
+import type {IpposumoEnemyDifficultyLevel} from "./enemy-difficulty.const";
+
 export const IpposumoAssetConf = {
   scene: {
     boot: "boot",
@@ -16,6 +18,7 @@ export const IpposumoAssetConf = {
     endWin: "endWin",
     endFailed: "endFailed",
     hit: "hit",
+    caricamento: "caricamento",
   } as const,
   image: {
     // for timerManager
@@ -156,5 +159,22 @@ export const IpposumoAssetConf = {
     score: "score",
     coins: "coins",
     timer: "timer",
+  },
+  enemyDifficulty: {
+    /** Range difficoltà random a inizio partita (1 = facile … 5 = difficile) */
+    randomMin: 2 as IpposumoEnemyDifficultyLevel,
+    randomMax: 2 as IpposumoEnemyDifficultyLevel,
+  },
+  layout: {
+    /** HUD carica: btn, foregroundCharge, fulmine, charge_1–7 */
+    chargeHud: {
+      /** Offset Y da fondo schermo su iPhone / schermi piccoli */
+      offsetYFromBottom: 40,
+      /** Quanto salire in più su schermi alti (px) */
+      offsetYExtraOnTallScreen: 100,
+      /** Scala btn_pressed / btn_unpressed */
+      buttonScaleMin: 0.5,
+      buttonScaleMax: 1.15,
+    },
   },
 };

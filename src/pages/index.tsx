@@ -45,7 +45,7 @@ export default function Home() {
       <main className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center px-6 py-12 sm:px-10 sm:py-16">
         <header className="mb-12 text-center">
           <span className="mb-4 inline-block rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-1 text-xs font-medium tracking-widest text-orange-300 uppercase">
-            v1.0.11
+            v1.0.12
           </span>
           <h1 className="bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent sm:text-6xl">
             Demo Giochi

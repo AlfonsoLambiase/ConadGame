@@ -25,17 +25,35 @@ export const IndovinaNumeroAssetConf = {
 
     // for game
     backgroundStage_0: "backgroundStage_0",
-    backgroundStage_1: "backgroundStage_0",
+    backgroundStage_1: "backgroundStage_1",
+    backgroundStage_2: "backgroundStage_2",
+    backgroundStage_3: "backgroundStage_3",
+    backgroundStage_4: "backgroundStage_4",
+    backgroundStage_5: "backgroundStage_5",
     foregroundStage_0: "foregroundStage_0",
-    foregroundStage_1: "foregroundStage_0",
+    foregroundStage_1: "foregroundStage_1",
+    foregroundStage_2: "foregroundStage_2",
+    foregroundStage_3: "foregroundStage_3",
+    foregroundStage_4: "foregroundStage_4",
+    foregroundStage_5: "foregroundStage_5",
     backgroundLogo: "backgroundLogo",
     backgroundScore: "backgroundScore",
     popup: "popup",
     timer: "timer",
     lavagna: "lavagna",
-    imageStage_0: "imageStage_0",
-    imageStage_1: "imageStage_1",
-    imageStage_2: "imageStage_2",
+
+    // animali
+    imageStage_scimmia: "imageStage_scimmia",
+    imageStage_zebra: "imageStage_zebra",
+    imageStage_giraffa: "imageStage_giraffa",
+    imageStage_leopardo: "imageStage_leopardo",
+    imageStage_avvoltoio: "imageStage_avvoltoio",
+    imageStage_leone: "imageStage_leone",
+    imageStage_suricato: "imageStage_suricato",
+    imageStage_tigre: "imageStage_tigre",
+    imageStage_elefante: "imageStage_elefante",
+    imageStage_ippopotamo: "imageStage_ippopotamo",
+
     button: "button",
     button_true: "button_true",
     button_false: "button_false",
@@ -155,6 +173,4 @@ export const IndovinaNumeroAssetConf = {
 };
 
 /** Estensioni file non-.png per texture con nome file custom */
-export const imageFileExtensions: Partial<Record<string, string>> = {
-  backgroundStage_0: "jpg",
-};
+export const imageFileExtensions: Partial<Record<string, string>> = {};

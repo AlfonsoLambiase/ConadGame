@@ -18,10 +18,24 @@ export class AudioManager {
     }
   }
 
-  playAudio(key: keyof typeof assetConf.audio): void {
-    if (this.audios[key]) {
-      this.audios[key].play();
+  playAudio(key: keyof typeof assetConf.audio, config?: Phaser.Types.Sound.SoundConfig): void {
+    const sound = this.audios[key];
+
+    if (!sound) return;
+
+    if (sound.isPlaying) {
+      sound.stop();
     }
+
+    sound.play(config);
+  }
+
+  playLoop(key: keyof typeof assetConf.audio, volume = 0.7): void {
+    this.playAudio(key, {loop: true, volume});
+  }
+
+  stopAudio(key: keyof typeof assetConf.audio): void {
+    this.audios[key]?.stop();
   }
 
   playBackgroundMusic(): void {

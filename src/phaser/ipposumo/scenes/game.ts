@@ -150,6 +150,11 @@ export class Game extends Phaser.Scene {
     return minValue + t * (maxValue - minValue);
   }
 
+  /** Su schermi piccoli (iPhone) resta baseY; su schermi alti sale fino a baseY + extraPx. */
+  setDynamicYOffset(baseY: number, extraPx: number): number {
+    return this.setDynamicValueBasedOnScale(baseY, baseY + extraPx);
+  }
+
   startAnimConfetti() {
     const config = this.sys.game.config as {width: number; height: number};
 
