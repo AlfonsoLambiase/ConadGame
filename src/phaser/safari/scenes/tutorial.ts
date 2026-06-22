@@ -1,5 +1,4 @@
-/* eslint-disable no-console */
-import {SafariAssetConf} from "../shared/config/asset-conf.const";
+﻿import {SafariAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = SafariAssetConf; //* Generalizzazione
 
@@ -379,7 +378,7 @@ export class Tutorial extends Phaser.Scene {
     // Clamp dello scale in range [minScale, maxScale]
     let globalScale = Math.min(maxScale, Math.max(minScale, calculatedScale));
 
-    // Penalità extra se dimensioni CSS sono piccole (es. dispositivi vecchi o SE)
+    // PenalitÃ  extra se dimensioni CSS sono piccole (es. dispositivi vecchi o SE)
     const isBigScreen = realWidth >= 2500 || realHeight >= 1400;
 
     if (!isBigScreen && cssWidth < 750 && cssHeight < 450) {

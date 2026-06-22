@@ -42,7 +42,6 @@ export type SponsorForLogo = {
         : pickDefault();
   
     if (options?.logPrefix !== undefined) {
-      // eslint-disable-next-line no-console -- debug sponsor logo
       console.log(`[${options.logPrefix}] sponsor logo filename: `, sponsorLogoFileName);
     }
   

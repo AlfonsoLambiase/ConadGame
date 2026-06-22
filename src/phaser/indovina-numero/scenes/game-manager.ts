@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
-import * as Phaser from "phaser";
+﻿import * as Phaser from "phaser";
 
 import {AudioManager} from "../components/audioManager";
 import {IndovinaNumeroAssetConf} from "../shared/config/asset-conf.const";
@@ -78,7 +76,7 @@ export class GameManager extends Phaser.Scene {
       .setScrollFactor(0);
   }
 
-  //* Scopo: Calcola le dimensioni e la posizione centrale dell’area di gioco (background),
+  //* Scopo: Calcola le dimensioni e la posizione centrale dellâ€™area di gioco (background),
   private computeLayoutDimensions(): void {
     const config = this.sys.game.config as {width: number; height: number};
 

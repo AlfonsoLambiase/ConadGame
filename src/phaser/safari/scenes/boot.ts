@@ -1,5 +1,4 @@
-/* eslint-disable no-console */
-import * as Phaser from "phaser";
+﻿import * as Phaser from "phaser";
 
 import {loadAudios, loadFonts, loadImages, loadSpritesheets} from "../shared/utils/load-assets";
 import {SafariAssetConf} from "../shared/config/asset-conf.const";

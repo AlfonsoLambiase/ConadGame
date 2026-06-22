@@ -1,5 +1,4 @@
-/* eslint-disable no-console */
-import * as Phaser from "phaser";
+﻿import * as Phaser from "phaser";
 
 import {Game} from "../scenes/game";
 import {IpposumoAssetConf} from "../shared/config/asset-conf.const";
@@ -251,7 +250,7 @@ export class UIManager {
 
     this.#createIppoAnimation();
 
-    // PLAYER — ippo in basso (coordinate locali al container)
+    // PLAYER â€” ippo in basso (coordinate locali al container)
     this.playerIppo = this.scene.add.sprite(
       0,
       arenaHalfHeight + ippoOffsetY,
@@ -260,7 +259,7 @@ export class UIManager {
     this.playerIppo.setOrigin(0.5, 1).setFlipY(true).setDepth(1).play(assetConf.keyAnim.animIppo);
     this.#applyIppoDisplaySize(this.playerIppo, ippoLocalScale);
 
-    // ENEMY — ippo in alto
+    // ENEMY â€” ippo in alto
     this.enemyIppo = this.scene.add.sprite(
       0,
       -(arenaHalfHeight + ippoOffsetY),
@@ -1542,7 +1541,7 @@ export class UIManager {
       const dynamicScale = this.gameScene.setDynamicValueBasedOnScale(0.4, 1.0);
 
       // AGGIUNTA:
-      // Se c'è notch, crea un bgLogo extra per riempire lo spazio sopra
+      // Se c'Ã¨ notch, crea un bgLogo extra per riempire lo spazio sopra
       if (safeTop > 0) {
         const bgLogoTopFill = this.scene.add.image(
           this.scene.scale.width / 2,
@@ -1599,7 +1598,7 @@ export class UIManager {
     this.scoreContainer = this.scene.add.container(centerX, centerY);
     this.scoreContainer.setScrollFactor(0).setDepth(10);
 
-    // 3. Creazione background centrato (0,0 perché è il centro del container)
+    // 3. Creazione background centrato (0,0 perchÃ© Ã¨ il centro del container)
     const backgroundScore = this.scene.add
       .image(0, 0, assetConf.image.backgroundScore)
       .setOrigin(0.5)

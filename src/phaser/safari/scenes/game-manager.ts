@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
-import * as Phaser from "phaser";
+﻿import * as Phaser from "phaser";
 
 import {PhotoResultOverlay} from "../components/photo-result-overlay";
 import {
@@ -17,7 +15,7 @@ import {Game} from "./game";
 
 const assetConf = SafariAssetConf; //* Generalizzazione
 
-/** Sotto sky; in questa scena così non copre l’HUD della scene Game */
+/** Sotto sky; in questa scena cosÃ¬ non copre lâ€™HUD della scene Game */
 const DEPTH_BACKGROUND_GAME = -1;
 /** Sky in fondo; sopra sky, sotto terrain */
 const DEPTH_BACKGROUND_SKY = 0;
@@ -31,7 +29,7 @@ const DEPTH_CAMERA_BTN = 11;
 const DEPTH_CAMERA_FLASH = 12;
 const DEPTH_VIEWFINDER_DEBUG = 9;
 
-/** px/s — aumenta entrambi per scroll più veloce (camera + card) */
+/** px/s â€” aumenta entrambi per scroll piÃ¹ veloce (camera + card) */
 const CAMERA_SCROLL_SPEED_MIN = 408;
 const CAMERA_SCROLL_SPEED_MAX = 1152;
 
@@ -105,7 +103,7 @@ export class GameManager extends Phaser.Scene {
     });
   }
 
-  //* Scopo: Calcola le dimensioni e la posizione centrale dell’area di gioco (background),
+  //* Scopo: Calcola le dimensioni e la posizione centrale dellâ€™area di gioco (background),
   private computeLayoutDimensions(): void {
     const config = this.sys.game.config as {width: number; height: number};
 
@@ -152,10 +150,10 @@ export class GameManager extends Phaser.Scene {
   private applyTerrainLayout(): void {
     const terrainOffsetY = this.getTerrainOffsetY();
 
-    // Pivot basso: mai sopra gameHeight (evita vuoto sotto), su schermi bassi può scendere
+    // Pivot basso: mai sopra gameHeight (evita vuoto sotto), su schermi bassi puÃ² scendere
     this.backgroundTerrain.setY(this.gameHeight + Math.max(0, terrainOffsetY));
 
-    // Ancoraggio al bordo alto reale dell’immagine (come layout originale)
+    // Ancoraggio al bordo alto reale dellâ€™immagine (come layout originale)
     this.scrollAnchorY = this.backgroundTerrain.y - this.backgroundTerrain.displayHeight;
   }
 
@@ -170,7 +168,7 @@ export class GameManager extends Phaser.Scene {
 
   /**
    * Offset basato su aspect ratio (h/w), non su globalScale.
-   * Schermi alti e stretti (es. OnePlus 360×804) → 0; schermi bassi → scende.
+   * Schermi alti e stretti (es. OnePlus 360Ã—804) â†’ 0; schermi bassi â†’ scende.
    */
   private getTerrainOffsetY(): number {
     const cfg = SafariViewfinderConfig;
@@ -440,7 +438,7 @@ export class GameManager extends Phaser.Scene {
     });
   }
 
-  /** Flash bianco a schermo intero prima dell’anteprima foto */
+  /** Flash bianco a schermo intero prima dellâ€™anteprima foto */
   private playCameraFlash(): Phaser.GameObjects.Rectangle {
     const flashAlpha = SafariViewfinderConfig.SHUTTER_FLASH_ALPHA;
 

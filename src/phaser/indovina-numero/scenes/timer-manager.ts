@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {IndovinaNumeroAssetConf} from "../shared/config/asset-conf.const";
+﻿import {IndovinaNumeroAssetConf} from "../shared/config/asset-conf.const";
 
 import {Game} from "./game";
 

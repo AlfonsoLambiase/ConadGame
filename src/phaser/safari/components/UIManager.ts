@@ -1,5 +1,4 @@
-/* eslint-disable no-console */
-import * as Phaser from "phaser";
+﻿import * as Phaser from "phaser";
 
 import {Game} from "../scenes/game";
 import {SafariAssetConf} from "../shared/config/asset-conf.const";
@@ -53,7 +52,7 @@ export class UIManager {
       const dynamicScale = this.gameScene.setDynamicValueBasedOnScale(0.4, 1.0);
 
       // AGGIUNTA:
-      // Se c'è notch, crea un bgLogo extra per riempire lo spazio sopra
+      // Se c'Ã¨ notch, crea un bgLogo extra per riempire lo spazio sopra
       if (safeTop > 0) {
         const bgLogoTopFill = this.scene.add.image(
           this.scene.scale.width / 2,
@@ -110,7 +109,7 @@ export class UIManager {
     this.scoreContainer = this.scene.add.container(centerX, centerY);
     this.scoreContainer.setScrollFactor(0).setDepth(10);
 
-    // 3. Creazione background centrato (0,0 perché è il centro del container)
+    // 3. Creazione background centrato (0,0 perchÃ© Ã¨ il centro del container)
     const backgroundScore = this.scene.add
       .image(0, 0, assetConf.image.backgroundScore)
       .setOrigin(0.5)

@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
-
+﻿
 import * as Phaser from "phaser";
 
 import {UIManager} from "../components/UIManager";
@@ -51,7 +49,7 @@ export class Game extends Phaser.Scene {
     this.uiManager.setGameScene(this);
     this.uiManager.createUI();
 
-    this.audioManager = new AudioManager(this); //* è una semplice classe helper. Si inizializza in questo modo.
+    this.audioManager = new AudioManager(this); //* Ã¨ una semplice classe helper. Si inizializza in questo modo.
     this.audioManager.loadAudios();
     //this.audioManager.playBackgroundMusic(); // ! Attivare musica
 
@@ -61,7 +59,7 @@ export class Game extends Phaser.Scene {
     this.exitButton = exitManager.createExitButton(this, this.theme);
     this.scene.bringToTop(assetConf.scene.exitManager);
 
-    // this.scene.launch(assetConf.scene.timerManager); //* è una estensione della classe Phaser.Scene. Si inizializza in questo modo.
+    // this.scene.launch(assetConf.scene.timerManager); //* Ã¨ una estensione della classe Phaser.Scene. Si inizializza in questo modo.
     // this.timerManager = this.scene.get(assetConf.scene.timerManager) as TimerManager;
     // this.timerManager.setGameScene(this);
     // this.timerManager.startTimer();
@@ -70,7 +68,7 @@ export class Game extends Phaser.Scene {
   }
 
   private initializeGameManager() {
-    // Aggiungi la scena GameManager al scene manager se non è già presente
+    // Aggiungi la scena GameManager al scene manager se non Ã¨ giÃ  presente
     if (!this.scene.manager.getScene(assetConf.scene.gameManager)) {
       this.scene.manager.add(assetConf.scene.gameManager, GameManager, false);
     }
@@ -127,7 +125,7 @@ export class Game extends Phaser.Scene {
     // Clamp dello scale in range [minScale, maxScale]
     let globalScale = Math.min(maxScale, Math.max(minScale, calculatedScale));
 
-    // Penalità extra se dimensioni CSS sono piccole (es. dispositivi vecchi o SE)
+    // PenalitÃ  extra se dimensioni CSS sono piccole (es. dispositivi vecchi o SE)
     const isBigScreen = realWidth >= 2500 || realHeight >= 1400;
 
     if (!isBigScreen && cssWidth < 750 && cssHeight < 450) {

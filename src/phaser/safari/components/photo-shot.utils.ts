@@ -354,7 +354,6 @@ export function logShotEvaluation(evaluation: ShotEvaluation): void {
   const covPct = Math.round(evaluation.outerCoverage * 100);
   const minSuccessPct = Math.round(cfg.MIN_SUCCESS_FOCUS_COVERAGE * 100);
 
-  /* eslint-disable no-console */
   if (evaluation.success) {
     console.log(`[Safari Shot] OK — outer ${covPct}% (min ${minSuccessPct}%)`);
   } else {
@@ -384,7 +383,6 @@ export function logShotEvaluation(evaluation: ShotEvaluation): void {
       MAX_HORIZONTAL_OVERFLOW_PX: cfg.MAX_HORIZONTAL_OVERFLOW_PX,
     },
   });
-  /* eslint-enable no-console */
 }
 
 export function evaluateShot(

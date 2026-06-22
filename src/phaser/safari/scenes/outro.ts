@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
-import {SafariAssetConf} from "../shared/config/asset-conf.const";
+﻿import {SafariAssetConf} from "../shared/config/asset-conf.const";
 
 import {PhaserEvents} from "@/lib/phaser-events";
 import {EventBus} from "@/phaser/EventBus";
@@ -8,7 +6,7 @@ import {EventBus} from "@/phaser/EventBus";
 const assetConf = SafariAssetConf; //* Generalizzazione
 
 export class Outro extends Phaser.Scene {
-  imageKey: string = "endFailed"; // di default è endFailed
+  imageKey: string = "endFailed"; // di default Ã¨ endFailed
 
   constructor() {
     super({key: assetConf.scene.outro});
@@ -36,7 +34,7 @@ export class Outro extends Phaser.Scene {
     const {width, height} = this.scale;
 
     // Sfondo centrato e deformato per coprire tutto
-    const background = this.add
+    this.add
       .image(width / 2, height / 2, assetConf.image.endBackground)
       .setOrigin(0.5, 0.5)
       .setDisplaySize(width, height);
