@@ -44,13 +44,33 @@ export class UIManager {
   private enemyPressureTimer?: Phaser.Time.TimerEvent;
   private enemyDifficultyLevel: IpposumoEnemyDifficultyLevel = 2;
   private static readonly IPPO_COLLISION_COOLDOWN_MS = 200;
-  /** Sovrapposizione visiva consentita tra gli ippo (0.07 = 7% dell'altezza sprite) */
-  private static readonly IPPO_VISUAL_OVERLAP_PERCENT = -0.03;
+  /** Spazio vuoto nel frame animIppo.png + offset collider originale */
+  private static readonly IPPO_SPRITE_PADDING_PERCENT = 0.02;
+  private static readonly IPPO_VISUAL_OVERLAP_PERCENT = -0.02;
+  /** Micro-sovrapposizione visiva a contatto (dopo trim padding) */
+  private static readonly IPPO_CONTACT_OVERLAP_PERCENT = 0.01;
   /** Tuning potenza carica massima (player + collisioni) */
   private static readonly CHARGE_PUSH_POWER_SCALE = 0.7;
   private static readonly CHARGE_HOLD_STEP_PER_LEVEL = 0.32;
   private static readonly CHARGE_KNOCKBACK_PER_LEVEL = 0.28;
   private static readonly CHARGE_COLLISION_POWER_FACTOR = 0.72;
+  /** Fase rilascio carica: copertura gap verso avversario e moltiplicatore impatto finale */
+  private static readonly CHARGE_RUSH_GAP_COVERAGE_BASE = 0.58;
+  private static readonly CHARGE_RUSH_GAP_COVERAGE_PER_LEVEL = 0.045;
+  private static readonly CHARGE_RUSH_DURATION_BASE_MS = 130;
+  private static readonly CHARGE_RUSH_DURATION_PER_LEVEL_MS = -12;
+  private static readonly CHARGE_IMPACT_POWER_PER_LEVEL = 0.18;
+  /** Potenza nemico sempre sotto il player: tap ~75%, carica ~48% */
+  private static readonly ENEMY_TAP_POWER_RATIO = 0.75;
+  private static readonly ENEMY_CHARGE_POWER_RATIO = 0.48;
+  private static readonly ENEMY_MAX_CHARGE_LEVEL = 4;
+  /** Ogni N spinte automatiche il nemico carica (1 su 5) */
+  private static readonly ENEMY_CHARGED_PUSH_EVERY_N = 5;
+  private static readonly ENEMY_TAP_DURATION_MS = 88;
+  private static readonly ENEMY_TAP_STEP_BONUS = 1.15;
+  private static readonly ENEMY_TAP_KNOCKBACK = 1.14;
+  private static readonly ENEMY_CHARGE_STEP_POWER_MULT = 1.25;
+  private static readonly ENEMY_CHARGE_STEP_DURATION_MS = 62;
   foregroundCharge!: Phaser.GameObjects.Image;
   fulmine!: Phaser.GameObjects.Image;
   chargeButton!: Phaser.GameObjects.Image;
@@ -68,6 +88,37 @@ export class UIManager {
   private activeEnemyChargeLevel = 1;
   private isPlayerPushActive = false;
   private isEnemyPushActive = false;
+  private enemyAutoPushCounter = 0;
+  private activePushCollisionResolved = false;
+  private chargedReleaseRushContactHandler: (() => void) | null = null;
+  private chargedReleaseImpactContactHandler: (() => void) | null = null;
+
+  #captureSeparationSnapshot(): {
+    playerKnockback: number;
+    enemyKnockback: number;
+    playerChargeLevel: number;
+    playerIsHoldCharge: boolean;
+    enemyChargeLevel: number;
+    playerPushActive: boolean;
+    enemyPushActive: boolean;
+  } {
+    return {
+      playerKnockback: this.#getActivePushKnockback(true),
+      enemyKnockback: this.#getActivePushKnockback(false),
+      playerChargeLevel: this.activePlayerChargeLevel,
+      playerIsHoldCharge: this.activePlayerIsHoldCharge,
+      enemyChargeLevel: this.activeEnemyChargeLevel,
+      playerPushActive: this.isPlayerPushActive,
+      enemyPushActive: this.isEnemyPushActive,
+    };
+  }
+
+  #isChargedPushCollision(): boolean {
+    return (
+      (this.isPlayerPushActive && this.activePlayerIsHoldCharge) ||
+      (this.isEnemyPushActive && this.activeEnemyChargeLevel > 1)
+    );
+  }
   private static readonly CHARGE_TAP_THRESHOLD_MS = 200;
   private static readonly CHARGE_LEVEL_INTERVAL_MS = 350;
   private readonly chargeOverlayKeys = [
@@ -289,6 +340,54 @@ export class UIManager {
     return sprite.displayHeight * UIManager.IPPO_VISUAL_OVERLAP_PERCENT;
   }
 
+  /** Bounds visivi senza il padding trasparente sotto/sopra nel PNG */
+  #getIppoVisualContactBounds(sprite: Phaser.GameObjects.Sprite): Phaser.Geom.Rectangle {
+    const bounds = sprite.getBounds();
+    const trim = sprite.displayHeight * UIManager.IPPO_SPRITE_PADDING_PERCENT;
+
+    if (sprite === this.enemyIppo) {
+      return new Phaser.Geom.Rectangle(bounds.left, bounds.top, bounds.width, bounds.height - trim);
+    }
+
+    return new Phaser.Geom.Rectangle(
+      bounds.left,
+      bounds.top + trim,
+      bounds.width,
+      bounds.height - trim,
+    );
+  }
+
+  #getAllowedVisualOverlapWorld(): number {
+    const avgHeight = (this.playerIppo.displayHeight + this.enemyIppo.displayHeight) / 2;
+
+    return Math.max(
+      this.gameScene.setDynamicValueBasedOnScale(1, 3),
+      avgHeight * UIManager.IPPO_CONTACT_OVERLAP_PERCENT,
+    );
+  }
+
+  #getIppoVisualOverlapDepth(): number {
+    const playerBounds = this.#getIppoVisualContactBounds(this.playerIppo);
+    const enemyBounds = this.#getIppoVisualContactBounds(this.enemyIppo);
+
+    return Math.max(0, enemyBounds.bottom - playerBounds.top);
+  }
+
+  #getRequiredVisualSeparation(): number {
+    return Math.max(0, this.#getIppoVisualOverlapDepth() - this.#getAllowedVisualOverlapWorld());
+  }
+
+  #resolveIppoVisualOverlap(): void {
+    const separationWorld = this.#getRequiredVisualSeparation();
+
+    if (separationWorld <= 0) return;
+
+    const halfLocal = this.#toArenaLocalDistance(separationWorld / 2);
+
+    this.enemyIppo.y -= halfLocal;
+    this.playerIppo.y += halfLocal;
+  }
+
   #getIppoColliderBounds(sprite: Phaser.GameObjects.Sprite): Phaser.Geom.Rectangle {
     const displayBounds = sprite.getBounds();
     const {width: colliderW, height: colliderH} = this.#getIppoColliderSize(sprite);
@@ -353,8 +452,44 @@ export class UIManager {
 
   #onGameUpdate(): void {
     this.#updateColliderDebugGraphics();
+    this.#checkChargedReleaseContact();
+    this.#checkPushVisualContact();
     this.#checkIppoSeparation();
     this.#checkFinishLines();
+  }
+
+  #checkPushVisualContact(): void {
+    if (!this.isPlayerPushActive && !this.isEnemyPushActive) return;
+    if (this.activePushCollisionResolved) return;
+    if (!this.#isIppoOverlapping()) return;
+    if (this.chargedReleaseRushContactHandler || this.chargedReleaseImpactContactHandler) return;
+
+    this.#resolvePushImpactCollision();
+  }
+
+  #clearChargedReleaseWatch(): void {
+    this.chargedReleaseRushContactHandler = null;
+    this.chargedReleaseImpactContactHandler = null;
+  }
+
+  #checkChargedReleaseContact(): void {
+    if (!this.#isIppoOverlapping()) return;
+
+    if (this.chargedReleaseRushContactHandler) {
+      const onRushContact = this.chargedReleaseRushContactHandler;
+
+      this.chargedReleaseRushContactHandler = null;
+      onRushContact();
+
+      return;
+    }
+
+    if (this.chargedReleaseImpactContactHandler) {
+      const onImpactContact = this.chargedReleaseImpactContactHandler;
+
+      this.chargedReleaseImpactContactHandler = null;
+      onImpactContact();
+    }
   }
 
   #getTapPushParams(): {pushStep: number; duration: number} {
@@ -421,7 +556,7 @@ export class UIManager {
     if (chargeLevel !== null) {
       this.#pushEnemyIppoDown(chargeLevel, () => {
         if (this.isGameFinished) return;
-        this.#scheduleNextEnemyTap(this.#getEnemyDifficulty().autoPushIntervalMs);
+        this.#scheduleNextEnemyTap(this.#getEnemyNextPushDelay());
       });
 
       return;
@@ -429,16 +564,38 @@ export class UIManager {
 
     this.#pushEnemyIppoTap(() => {
       if (this.isGameFinished) return;
-      this.#scheduleNextEnemyTap(this.#getEnemyDifficulty().autoPushIntervalMs);
+      this.#scheduleNextEnemyTap(this.#getEnemyNextPushDelay());
     });
   }
 
+  #getEnemyNextPushDelay(): number {
+    const {autoPushIntervalMs} = this.#getEnemyDifficulty();
+
+    return autoPushIntervalMs + Phaser.Math.Between(-60, 60);
+  }
+
+  #rollEnemyTapSteps(): number {
+    return 1;
+  }
+
+  #getEnemyTapPushParams(): {pushStep: number; duration: number} {
+    const {pushStep} = this.#getTapPushParams();
+
+    return {
+      pushStep: pushStep * UIManager.ENEMY_TAP_STEP_BONUS,
+      duration: UIManager.ENEMY_TAP_DURATION_MS,
+    };
+  }
+
   #rollEnemyChargeLevel(): number | null {
+    this.enemyAutoPushCounter++;
+
+    if (this.enemyAutoPushCounter % UIManager.ENEMY_CHARGED_PUSH_EVERY_N !== 0) return null;
+
     const difficulty = this.#getEnemyDifficulty();
+    const level = Phaser.Math.Between(difficulty.chargeLevelMin, difficulty.chargeLevelMax);
 
-    if (Math.random() >= difficulty.chargedPushChance) return null;
-
-    return Phaser.Math.Between(difficulty.chargeLevelMin, difficulty.chargeLevelMax);
+    return Phaser.Math.Clamp(level, 1, UIManager.ENEMY_MAX_CHARGE_LEVEL);
   }
 
   #rollEnemyCounterLevel(playerChargeLevel: number, playerIsHoldCharge: boolean): number {
@@ -511,36 +668,94 @@ export class UIManager {
     this.enemyPressureTimer = undefined;
   }
 
+  #getEnemyPushPowerScale(isCharged: boolean): number {
+    if (!isCharged) {
+      return UIManager.ENEMY_TAP_POWER_RATIO;
+    }
+
+    const {pushPowerScale} = this.#getEnemyDifficulty();
+    const maxAllowed = UIManager.CHARGE_PUSH_POWER_SCALE * UIManager.ENEMY_CHARGE_POWER_RATIO;
+
+    return Math.min(pushPowerScale, maxAllowed);
+  }
+
   #getEnemyKnockbackMultiplier(chargeLevel: number): number {
     const level = Phaser.Math.Clamp(chargeLevel, 1, this.chargeOverlayKeys.length);
-    const {knockbackPerLevel} = this.#getEnemyDifficulty();
+    const playerKnockback = this.#getKnockbackMultiplier(level, true);
 
-    return 1 + (level - 1) * knockbackPerLevel;
+    return 1 + (playerKnockback - 1) * UIManager.ENEMY_CHARGE_POWER_RATIO;
   }
 
   #pushEnemyIppoTap(onComplete?: () => void): void {
-    const {pushStep, duration} = this.#getTapPushParams();
-    const scaledPushStep = pushStep * this.#getEnemyDifficulty().pushPowerScale;
+    this.scene.tweens.killTweensOf(this.enemyIppo);
+
+    const tapSteps = this.#rollEnemyTapSteps();
 
     this.isEnemyPushActive = true;
-    this.activeEnemyKnockback = 1;
+    this.activeEnemyKnockback = UIManager.ENEMY_TAP_KNOCKBACK;
     this.activeEnemyChargeLevel = 1;
+
+    this.#executeEnemyTapSteps(tapSteps, onComplete);
+  }
+
+  #executeEnemyTapSteps(remainingSteps: number, onComplete?: () => void): void {
+    const {pushStep, duration} = this.#getEnemyTapPushParams();
+    const scaledPushStep = pushStep * this.#getEnemyPushPowerScale(false);
 
     this.scene.tweens.add({
       targets: this.enemyIppo,
       y: this.enemyIppo.y + this.#toArenaLocalDistance(scaledPushStep),
       duration,
-      ease: "Quad.easeOut",
+      ease: "Sine.easeInOut",
       onComplete: () => {
         if (this.isGameFinished) return;
 
         if (this.#isIppoOverlapping()) {
-          this.#handleIppoCollision();
+          this.#resolvePushImpactCollision();
+
+          return;
+        }
+
+        if (remainingSteps > 1) {
+          this.#executeEnemyTapSteps(remainingSteps - 1, onComplete);
 
           return;
         }
 
         this.isEnemyPushActive = false;
+        onComplete?.();
+      },
+    });
+  }
+
+  #executeEnemyChargedSteps(remainingSteps: number, onComplete?: () => void): void {
+    const {pushStep} = this.#getEnemyTapPushParams();
+    const scaledPushStep =
+      pushStep * this.#getEnemyPushPowerScale(true) * UIManager.ENEMY_CHARGE_STEP_POWER_MULT;
+
+    this.scene.tweens.add({
+      targets: this.enemyIppo,
+      y: this.enemyIppo.y + this.#toArenaLocalDistance(scaledPushStep),
+      duration: UIManager.ENEMY_CHARGE_STEP_DURATION_MS,
+      ease: "Sine.easeInOut",
+      onComplete: () => {
+        if (this.isGameFinished) return;
+
+        if (this.#isIppoOverlapping()) {
+          this.#resolvePushImpactCollision();
+
+          return;
+        }
+
+        if (remainingSteps > 1) {
+          this.#executeEnemyChargedSteps(remainingSteps - 1, onComplete);
+
+          return;
+        }
+
+        this.isEnemyPushActive = false;
+        this.activeEnemyKnockback = 1;
+        this.activeEnemyChargeLevel = 1;
         onComplete?.();
       },
     });
@@ -554,67 +769,37 @@ export class UIManager {
     this.isEnemyPushActive = true;
     this.activeEnemyChargeLevel = clampedLevel;
     this.activeEnemyKnockback = this.#getEnemyKnockbackMultiplier(clampedLevel);
-
-    const {pushStepWorld} = this.#getHoldChargePushMetrics(
-      clampedLevel,
-      this.#getEnemyDifficulty().pushPowerScale,
-    );
-    const pushStep = this.#toArenaLocalDistance(pushStepWorld);
-    const stepDuration = 80 + clampedLevel * 6;
-    let stepsDone = 0;
-
-    const finishPush = () => {
-      this.#resetPushState();
-      onComplete?.();
-    };
-
-    const executeStep = () => {
-      if (stepsDone >= clampedLevel) {
-        finishPush();
-
-        return;
-      }
-
-      if (this.#isIppoOverlapping()) {
-        this.#handleIppoCollision();
-        finishPush();
-
-        return;
-      }
-
-      stepsDone++;
-
-      this.scene.tweens.add({
-        targets: this.enemyIppo,
-        y: this.enemyIppo.y + pushStep,
-        duration: stepDuration,
-        ease: "Cubic.easeOut",
-        onComplete: () => {
-          if (this.#isIppoOverlapping()) {
-            this.#handleIppoCollision();
-            finishPush();
-
-            return;
-          }
-
-          executeStep();
-        },
-      });
-    };
-
-    executeStep();
+    this.#executeEnemyChargedSteps(clampedLevel, onComplete);
   }
 
   #onIppoOverlap(): void {
+    if (this.#isPushAnimationControllingCollision()) return;
+
+    this.#handleIppoCollision();
+  }
+
+  #isPushAnimationControllingCollision(): boolean {
+    return this.isPlayerPushActive || this.isEnemyPushActive;
+  }
+
+  #resolvePushImpactCollision(): void {
+    if (this.activePushCollisionResolved) return;
+
     this.#handleIppoCollision();
   }
 
   #handleIppoCollision(): void {
-    this.#updateScontroImage();
-
     const now = this.scene.time.now;
+    const isChargedHit = this.#isChargedPushCollision();
 
-    if (now < this.ippoCollisionCooldownUntil) return;
+    if (now < this.ippoCollisionCooldownUntil && !isChargedHit) return;
+    if (this.activePushCollisionResolved) return;
+
+    const separationSnapshot = this.#captureSeparationSnapshot();
+
+    this.activePushCollisionResolved = true;
+    this.#clearChargedReleaseWatch();
+    this.#updateScontroImage();
 
     this.isIppoColliding = true;
     this.ippoCollisionCooldownUntil = now + UIManager.IPPO_COLLISION_COOLDOWN_MS;
@@ -622,14 +807,18 @@ export class UIManager {
 
     this.gameScene.audioManager.playAudio(assetConf.audio.hit);
 
-    this.scene.tweens.killTweensOf(this.playerIppo);
-    this.scene.tweens.killTweensOf(this.enemyIppo);
-    this.#forceSeparateIppoPair();
-    this.#resetPushState();
+    const pauseMs = this.#getEnemyDifficulty().autoPushPauseMs;
 
-    if (!this.isGameFinished) {
-      this.#scheduleNextEnemyTap(this.#getEnemyDifficulty().autoPushPauseMs);
-    }
+    this.scene.time.delayedCall(0, () => {
+      this.scene.tweens.killTweensOf(this.playerIppo);
+      this.scene.tweens.killTweensOf(this.enemyIppo);
+      this.#forceSeparateIppoPair(separationSnapshot);
+      this.#resetPushState();
+
+      if (!this.isGameFinished) {
+        this.#scheduleNextEnemyTap(pauseMs);
+      }
+    });
   }
 
   #resetPushState(): void {
@@ -640,6 +829,8 @@ export class UIManager {
     this.activePlayerChargeLevel = 1;
     this.activePlayerIsHoldCharge = false;
     this.activeEnemyChargeLevel = 1;
+    this.activePushCollisionResolved = false;
+    this.#clearChargedReleaseWatch();
   }
 
   #updateScontroImage(): void {
@@ -663,14 +854,18 @@ export class UIManager {
   }
 
   #getIppoOverlapDepth(): number {
-    const playerBounds = this.#getIppoColliderBounds(this.playerIppo);
-    const enemyBounds = this.#getIppoColliderBounds(this.enemyIppo);
+    return this.#getIppoVisualOverlapDepth();
+  }
 
-    return Math.max(0, enemyBounds.bottom - playerBounds.top);
+  #getDistanceToEnemyWorld(): number {
+    const playerBounds = this.#getIppoVisualContactBounds(this.playerIppo);
+    const enemyBounds = this.#getIppoVisualContactBounds(this.enemyIppo);
+
+    return Math.max(0, playerBounds.top - enemyBounds.bottom);
   }
 
   #isIppoOverlapping(): boolean {
-    return this.#getIppoOverlapDepth() > 0;
+    return this.#getIppoVisualOverlapDepth() > this.#getAllowedVisualOverlapWorld();
   }
 
   #getKnockbackMultiplier(chargeLevel: number, isCharged: boolean): number {
@@ -714,10 +909,7 @@ export class UIManager {
   }
 
   #getTapCollisionSeparation(): number {
-    const overlapDepth = this.#getIppoOverlapDepth();
-    const margin = this.gameScene.setDynamicValueBasedOnScale(2, 6);
-
-    return Math.max(0, overlapDepth + margin);
+    return this.#getRequiredVisualSeparation();
   }
 
   #getChargedCollisionSeparation(
@@ -726,39 +918,73 @@ export class UIManager {
     powerScale = 1,
   ): number {
     const chargePower = this.#getChargePushPower(chargeLevel, isHoldCharge) * powerScale;
-    const overlapDepth = this.#getIppoOverlapDepth();
-    const margin = this.gameScene.setDynamicValueBasedOnScale(6, 14);
+    const visualSeparation = this.#getRequiredVisualSeparation();
 
-    return Math.max(chargePower * UIManager.CHARGE_COLLISION_POWER_FACTOR, overlapDepth + margin);
+    return Math.max(chargePower * UIManager.CHARGE_COLLISION_POWER_FACTOR, visualSeparation);
   }
 
-  #forceSeparateIppoPair(): void {
-    const playerKnockback = this.#getActivePushKnockback(true);
-    const enemyKnockback = this.#getActivePushKnockback(false);
+  #addSeparationTween(
+    target: Phaser.GameObjects.Sprite,
+    y: number,
+    duration: number,
+    ease: string,
+  ): void {
+    this.scene.tweens.add({
+      targets: target,
+      y,
+      duration,
+      ease,
+      onComplete: () => this.#resolveIppoVisualOverlap(),
+    });
+  }
+
+  #forceSeparateIppoPair(snapshot = this.#captureSeparationSnapshot()): void {
+    const playerKnockback = snapshot.playerPushActive ? snapshot.playerKnockback : 0;
+    const enemyKnockback = snapshot.enemyPushActive ? snapshot.enemyKnockback : 0;
 
     if (playerKnockback > enemyKnockback) {
-      this.#applyChargedSeparation("player", playerKnockback);
+      this.#applyChargedSeparation("player", playerKnockback, snapshot);
 
       return;
     }
 
     if (enemyKnockback > playerKnockback) {
-      this.#applyChargedSeparation("enemy", enemyKnockback);
+      this.#applyChargedSeparation("enemy", enemyKnockback, snapshot);
 
       return;
     }
 
-    this.#applyTapSeparation();
+    if (snapshot.playerPushActive && snapshot.playerIsHoldCharge) {
+      this.#applyChargedSeparation(
+        "player",
+        Math.max(playerKnockback, this.#getKnockbackMultiplier(snapshot.playerChargeLevel, true)),
+        snapshot,
+      );
+
+      return;
+    }
+
+    if (snapshot.enemyPushActive && snapshot.enemyChargeLevel > 1) {
+      this.#applyChargedSeparation("enemy", Math.max(enemyKnockback, 1), snapshot);
+
+      return;
+    }
+
+    this.#applyTapSeparation(snapshot);
   }
 
-  #applyChargedSeparation(winner: "player" | "enemy", knockback: number): void {
+  #applyChargedSeparation(
+    winner: "player" | "enemy",
+    knockback: number,
+    snapshot = this.#captureSeparationSnapshot(),
+  ): void {
     const isPlayerWinner = winner === "player";
-    const chargeLevel = isPlayerWinner ? this.activePlayerChargeLevel : this.activeEnemyChargeLevel;
-    const isHoldCharge = isPlayerWinner ? this.activePlayerIsHoldCharge : true;
-    const powerScale = isPlayerWinner ? 1 : this.#getEnemyDifficulty().pushPowerScale;
+    const chargeLevel = isPlayerWinner ? snapshot.playerChargeLevel : snapshot.enemyChargeLevel;
+    const isHoldCharge = isPlayerWinner ? snapshot.playerIsHoldCharge : true;
+    const powerScale = isPlayerWinner ? 1 : this.#getEnemyPushPowerScale(true);
     const separation = this.#getChargedCollisionSeparation(chargeLevel, isHoldCharge, powerScale);
     const winnerRatio = Phaser.Math.Clamp(0.55 + (knockback - 1) * 0.08, 0.55, 0.85);
-    const winnerSeparation =
+    let winnerSeparation =
       separation * winnerRatio +
       this.gameScene.setDynamicValueBasedOnScale(6, 16) * (knockback - 1);
     const loserSeparation = separation * (1 - winnerRatio);
@@ -766,57 +992,90 @@ export class UIManager {
     const winnerEase = "Cubic.easeOut";
     const loserEase = "Quad.easeOut";
 
-    if (isPlayerWinner) {
-      this.scene.tweens.add({
-        targets: this.enemyIppo,
-        y: this.enemyIppo.y - this.#toArenaLocalDistance(winnerSeparation),
-        duration,
-        ease: winnerEase,
-      });
+    if (isPlayerWinner && isHoldCharge) {
+      const minEnemyPush = this.gameScene.setDynamicValueBasedOnScale(12, 28);
 
-      this.scene.tweens.add({
-        targets: this.playerIppo,
-        y: this.playerIppo.y + this.#toArenaLocalDistance(loserSeparation),
+      winnerSeparation = Math.max(winnerSeparation, minEnemyPush);
+    }
+
+    this.#resolveIppoVisualOverlap();
+
+    if (isPlayerWinner) {
+      this.#addSeparationTween(
+        this.enemyIppo,
+        this.enemyIppo.y - this.#toArenaLocalDistance(winnerSeparation),
         duration,
-        ease: loserEase,
-      });
+        winnerEase,
+      );
+
+      this.#addSeparationTween(
+        this.playerIppo,
+        this.playerIppo.y + this.#toArenaLocalDistance(loserSeparation),
+        duration,
+        loserEase,
+      );
 
       return;
     }
 
-    this.scene.tweens.add({
-      targets: this.playerIppo,
-      y: this.playerIppo.y + this.#toArenaLocalDistance(winnerSeparation),
+    this.#addSeparationTween(
+      this.playerIppo,
+      this.playerIppo.y + this.#toArenaLocalDistance(winnerSeparation),
       duration,
-      ease: winnerEase,
-    });
+      winnerEase,
+    );
 
-    this.scene.tweens.add({
-      targets: this.enemyIppo,
-      y: this.enemyIppo.y - this.#toArenaLocalDistance(loserSeparation),
+    this.#addSeparationTween(
+      this.enemyIppo,
+      this.enemyIppo.y - this.#toArenaLocalDistance(loserSeparation),
       duration,
-      ease: loserEase,
-    });
+      loserEase,
+    );
   }
 
-  #applyTapSeparation(): void {
-    const separation = this.#getTapCollisionSeparation();
-    const enemySeparation = separation * 0.5;
-    const playerSeparation = separation * 0.5;
+  #applyTapSeparation(snapshot = this.#captureSeparationSnapshot()): void {
+    const isEnemyTapPush =
+      snapshot.enemyPushActive && snapshot.enemyChargeLevel === 1 && snapshot.enemyKnockback > 1;
+    const isPlayerTapPush =
+      snapshot.playerPushActive && !snapshot.playerIsHoldCharge && snapshot.playerKnockback <= 1;
 
-    this.scene.tweens.add({
-      targets: this.enemyIppo,
-      y: this.enemyIppo.y - this.#toArenaLocalDistance(enemySeparation),
-      duration: 130,
-      ease: "Quad.easeOut",
-    });
+    let separation = this.#getTapCollisionSeparation();
 
-    this.scene.tweens.add({
-      targets: this.playerIppo,
-      y: this.playerIppo.y + this.#toArenaLocalDistance(playerSeparation),
-      duration: 130,
-      ease: "Quad.easeOut",
-    });
+    if (isEnemyTapPush) {
+      const enemyTapPower =
+        this.#getEnemyTapPushParams().pushStep * this.#getEnemyPushPowerScale(false);
+      const margin = this.gameScene.setDynamicValueBasedOnScale(3, 8);
+
+      separation = Math.max(separation, enemyTapPower + margin);
+    }
+
+    let enemyShare = 0.5;
+
+    if (isEnemyTapPush && !isPlayerTapPush) {
+      enemyShare = 0.64;
+    } else if (isPlayerTapPush && !isEnemyTapPush) {
+      enemyShare = 0.36;
+    }
+
+    const enemySeparation = separation * enemyShare;
+    const playerSeparation = separation * (1 - enemyShare);
+    const duration = isEnemyTapPush ? 115 : 130;
+
+    this.#resolveIppoVisualOverlap();
+
+    this.#addSeparationTween(
+      this.enemyIppo,
+      this.enemyIppo.y - this.#toArenaLocalDistance(enemySeparation),
+      duration,
+      "Quad.easeOut",
+    );
+
+    this.#addSeparationTween(
+      this.playerIppo,
+      this.playerIppo.y + this.#toArenaLocalDistance(playerSeparation),
+      duration,
+      "Quad.easeOut",
+    );
   }
 
   #checkIppoSeparation(): void {
@@ -826,6 +1085,8 @@ export class UIManager {
 
       return;
     }
+
+    if (this.#isPushAnimationControllingCollision()) return;
 
     if (this.scene.time.now >= this.ippoCollisionCooldownUntil) {
       this.#handleIppoCollision();
@@ -1051,6 +1312,155 @@ export class UIManager {
     this.currentChargeLevel = 0;
   }
 
+  #getChargedReleaseMetrics(
+    chargeLevel: number,
+    powerScale = UIManager.CHARGE_PUSH_POWER_SCALE,
+  ): {
+    rushStepWorld: number;
+    rushDuration: number;
+    impactStepWorld: number;
+    impactDuration: number;
+  } {
+    const holdMetrics = this.#getHoldChargePushMetrics(chargeLevel, powerScale);
+    const gapWorld = this.#getDistanceToEnemyWorld();
+    const rushCoverage = Phaser.Math.Clamp(
+      UIManager.CHARGE_RUSH_GAP_COVERAGE_BASE +
+        (holdMetrics.clampedLevel - 1) * UIManager.CHARGE_RUSH_GAP_COVERAGE_PER_LEVEL,
+      0.5,
+      0.92,
+    );
+    const minRushWorld = this.gameScene.setDynamicValueBasedOnScale(18, 40);
+    const rushStepWorld = Math.max(minRushWorld, gapWorld * rushCoverage);
+    const rushDuration = Math.max(
+      40,
+      UIManager.CHARGE_RUSH_DURATION_BASE_MS +
+        (holdMetrics.clampedLevel - 1) * UIManager.CHARGE_RUSH_DURATION_PER_LEVEL_MS,
+    );
+    const impactMultiplier =
+      1 + (holdMetrics.clampedLevel - 1) * UIManager.CHARGE_IMPACT_POWER_PER_LEVEL;
+    const impactStepWorld = holdMetrics.totalPower * impactMultiplier;
+    const impactDuration = 70 + holdMetrics.clampedLevel * 16;
+
+    return {rushStepWorld, rushDuration, impactStepWorld, impactDuration};
+  }
+
+  #runChargedReleaseSequence(
+    sprite: Phaser.GameObjects.Sprite,
+    deltaSign: -1 | 1,
+    metrics: {
+      rushStepWorld: number;
+      rushDuration: number;
+      impactStepWorld: number;
+      impactDuration: number;
+    },
+    onComplete?: () => void,
+  ): void {
+    const rushStep = this.#toArenaLocalDistance(metrics.rushStepWorld) * deltaSign;
+    const impactStep = this.#toArenaLocalDistance(metrics.impactStepWorld) * deltaSign;
+    let pushFinished = false;
+    let rushPhaseDone = false;
+    let impactPhaseDone = false;
+
+    const finishPush = () => {
+      if (pushFinished) return;
+
+      pushFinished = true;
+      this.#clearChargedReleaseWatch();
+
+      if (!this.activePushCollisionResolved) {
+        this.#resetPushState();
+      }
+
+      onComplete?.();
+    };
+
+    const executeImpact = () => {
+      if (pushFinished || rushPhaseDone) return;
+
+      rushPhaseDone = true;
+
+      if (this.#isIppoOverlapping()) {
+        this.#resolvePushImpactCollision();
+        finishPush();
+
+        return;
+      }
+
+      this.chargedReleaseImpactContactHandler = () => {
+        if (pushFinished || impactPhaseDone) return;
+
+        impactPhaseDone = true;
+        this.scene.time.delayedCall(0, () => {
+          this.scene.tweens.killTweensOf(sprite);
+          this.#resolvePushImpactCollision();
+          finishPush();
+        });
+      };
+
+      this.scene.tweens.add({
+        targets: sprite,
+        y: sprite.y + impactStep,
+        duration: metrics.impactDuration,
+        ease: "Back.easeOut",
+        onComplete: () => {
+          this.chargedReleaseImpactContactHandler = null;
+
+          if (pushFinished || impactPhaseDone) return;
+
+          impactPhaseDone = true;
+
+          if (this.#isIppoOverlapping()) {
+            this.#resolvePushImpactCollision();
+          }
+
+          finishPush();
+        },
+      });
+    };
+
+    this.chargedReleaseRushContactHandler = () => {
+      if (rushPhaseDone || pushFinished) return;
+
+      this.scene.time.delayedCall(0, () => {
+        if (rushPhaseDone || pushFinished) return;
+
+        this.scene.tweens.killTweensOf(sprite);
+        executeImpact();
+      });
+    };
+
+    this.scene.tweens.add({
+      targets: sprite,
+      y: sprite.y + rushStep,
+      duration: metrics.rushDuration,
+      ease: "Cubic.easeIn",
+      onComplete: () => {
+        this.chargedReleaseRushContactHandler = null;
+
+        if (pushFinished || rushPhaseDone) return;
+
+        if (this.#isIppoOverlapping()) {
+          rushPhaseDone = true;
+          this.#resolvePushImpactCollision();
+          finishPush();
+
+          return;
+        }
+
+        executeImpact();
+      },
+    });
+  }
+
+  #pushPlayerIppoChargedRelease(clampedLevel: number, onComplete?: () => void): void {
+    this.#runChargedReleaseSequence(
+      this.playerIppo,
+      -1,
+      this.#getChargedReleaseMetrics(clampedLevel),
+      onComplete,
+    );
+  }
+
   #pushPlayerIppoUp(chargeLevel: number, isHoldCharge: boolean, onComplete?: () => void): void {
     this.scene.tweens.killTweensOf(this.playerIppo);
 
@@ -1060,14 +1470,25 @@ export class UIManager {
     this.activePlayerChargeLevel = clampedLevel;
     this.activePlayerIsHoldCharge = isHoldCharge;
     this.activePlayerKnockback = this.#getKnockbackMultiplier(clampedLevel, isHoldCharge);
-    this.#triggerEnemyCounterPush(clampedLevel, isHoldCharge);
+
+    if (!isHoldCharge) {
+      this.#triggerEnemyCounterPush(clampedLevel, false);
+    } else {
+      this.scene.tweens.killTweensOf(this.enemyIppo);
+      this.isEnemyPushActive = false;
+      this.activeEnemyKnockback = 1;
+      this.activeEnemyChargeLevel = 1;
+      this.enemyAutoPushPausedUntil = this.scene.time.now + 450;
+    }
+
+    if (isHoldCharge) {
+      this.#pushPlayerIppoChargedRelease(clampedLevel, onComplete);
+
+      return;
+    }
 
     const tapPush = this.#getTapPushParams();
-    const holdMetrics = isHoldCharge ? this.#getHoldChargePushMetrics(clampedLevel) : null;
-    const pushStep = this.#toArenaLocalDistance(
-      holdMetrics ? holdMetrics.pushStepWorld : tapPush.pushStep,
-    );
-    const stepDuration = isHoldCharge ? 80 + clampedLevel * 6 : tapPush.duration;
+    const pushStep = this.#toArenaLocalDistance(tapPush.pushStep);
     let stepsDone = 0;
 
     const finishPush = () => {
@@ -1083,7 +1504,7 @@ export class UIManager {
       }
 
       if (this.#isIppoOverlapping()) {
-        this.#handleIppoCollision();
+        this.#resolvePushImpactCollision();
         finishPush();
 
         return;
@@ -1094,11 +1515,11 @@ export class UIManager {
       this.scene.tweens.add({
         targets: this.playerIppo,
         y: this.playerIppo.y - pushStep,
-        duration: stepDuration,
-        ease: isHoldCharge ? "Cubic.easeOut" : "Quad.easeOut",
+        duration: tapPush.duration,
+        ease: "Sine.easeOut",
         onComplete: () => {
           if (this.#isIppoOverlapping()) {
-            this.#handleIppoCollision();
+            this.#resolvePushImpactCollision();
             finishPush();
 
             return;
