@@ -1,5 +1,11 @@
 import type {IpposumoEnemyDifficultyLevel} from "./enemy-difficulty.const";
 
+const animIppoSpritesheet = {
+  frameWidth: 429,
+  frameHeight: 517,
+  key: "animIppo",
+} as const;
+
 export const IpposumoAssetConf = {
   scene: {
     boot: "boot",
@@ -95,11 +101,7 @@ export const IpposumoAssetConf = {
       key: "tutorialText03",
     },
     // for ipposumo wrestlers (4 frame)
-    animIppo: {
-      frameWidth: 429,
-      frameHeight: 517,
-      key: "animIppo",
-    },
+    animIppo: animIppoSpritesheet,
 
     // for confetti - fine partita
     confetti_left: {
@@ -137,6 +139,16 @@ export const IpposumoAssetConf = {
       key: "animBrokenHeart",
     },
   },
+  /** Spritesheet usati in UIManager (arena di gioco) */
+  ippoSpritesheet: {
+    animIppo: animIppoSpritesheet,
+  },
+  /** Immagini HUD / arena usate in UIManager */
+  gameImage: {
+    arena: "arena",
+    btn_pressed: "btn_pressed",
+    btn_unpressed: "btn_unpressed",
+  },
   keyAnim: {
     animIppo: "animIppo",
     // for starsEffect
@@ -162,8 +174,8 @@ export const IpposumoAssetConf = {
   },
   enemyDifficulty: {
     /** Range difficoltà random a inizio partita (1 = facile … 5 = difficile) */
-    randomMin: 2 as IpposumoEnemyDifficultyLevel,
-    randomMax: 2 as IpposumoEnemyDifficultyLevel,
+    randomMin: 4 as IpposumoEnemyDifficultyLevel,
+    randomMax: 4 as IpposumoEnemyDifficultyLevel,
   },
   layout: {
     /** HUD carica: btn, foregroundCharge, fulmine, charge_1–7 */
