@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {IpposumoAssetConf} from "../shared/config/asset-conf.const";
 
 const assetConf = IpposumoAssetConf; //* Generalizzazione
